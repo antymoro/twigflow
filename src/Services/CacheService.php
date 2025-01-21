@@ -10,7 +10,8 @@ class CacheService {
     private int $defaultExpireTime;
 
     public function __construct() {
-        $this->cache = new FilesystemAdapter();
+        $cacheDirectory = __DIR__ . '/../../cache';
+        $this->cache = new FilesystemAdapter('', 0, $cacheDirectory);
         $this->defaultExpireTime = (int) ($_ENV['CACHE_EXPIRE_TIME'] ?? 3600);
     }
 

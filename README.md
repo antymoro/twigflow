@@ -35,9 +35,8 @@ PHP Twig Renderer is a web application built with the Slim Framework and Twig te
    Create a `.env` file in the root directory and add the necessary environment variables:
 
    ```env
-   CMS_API_URL=https://example.com/api
-   CMS_API_KEY=your-api-key
-   CACHE_DIR=var/cache
+   PAYLOAD_API_URL==https://example.com
+   CACHE_EXPIRE_TIME=3600
    ```
 
 4. **Set up the web server:**
@@ -101,9 +100,6 @@ To deploy the application to a production environment, follow these steps:
 
    Ensure the server has write permissions to the cache directory (`var/cache`).
 
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request on GitHub.
 
 ## License
 
