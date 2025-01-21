@@ -17,6 +17,7 @@ class PageController {
     }
 
     public function show(Request $request, Response $response, array $args): Response {
+        error_log("PageController::show() method called");
 
         $slug = $args['slug'] ?? null;
         if (!$slug) {

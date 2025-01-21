@@ -8,6 +8,7 @@ use Twig\Loader\FilesystemLoader;
 use App\Services\PayloadService;
 use App\Services\CacheService;
 use App\Controllers\PageController;
+use App\Controllers\CacheController;
 
 return function (App $app) {
     $container = $app->getContainer();
@@ -48,5 +49,10 @@ return function (App $app) {
             $c->get(Twig::class),
             $c->get(PayloadService::class)
         );
+    });
+
+    // Register CacheController
+    $container->set(CacheController::class, function($c) {
+        return new CacheController($c->get(CacheService::class));
     });
 };
