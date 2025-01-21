@@ -9,6 +9,8 @@ use Slim\Factory\AppFactory;
 use Slim\Views\TwigMiddleware;
 use Slim\Middleware\ErrorMiddleware;
 use Dotenv\Dotenv;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 
 function dd($data) {
     var_dump($data);
@@ -24,8 +26,8 @@ $dotenv->load();
 // Determine environment
 $environment = $_ENV['APP_ENV'] ?? 'production';
 $displayErrorDetails = $environment === 'development';
-$logErrors = $environment !== 'production';
-$logErrorDetails = $environment !== 'production';
+$logErrors = true;
+$logErrorDetails = true;
 
 // Create Container using PHP-DI
 $container = new Container();
@@ -37,8 +39,22 @@ $app = AppFactory::create();
 // Add Routing Middleware
 $app->addRoutingMiddleware();
 
+// Create a logger
+$logger = new Logger('app');
+$logFile = __DIR__ . '/logs/app.log';
+if (!file_exists(dirname($logFile))) {
+    mkdir(dirname($logFile), 0777, true);
+}
+$logger->pushHandler(new StreamHandler($logFile, Logger::DEBUG));
+
+// Cache dir
+$cacheDir = __DIR__ . '/cache';
+if (!file_exists($cacheDir)) {
+    mkdir($cacheDir, 0777, true);
+}
+
 // Add Error Middleware (displayErrorDetails, logErrors, logErrorDetails)
-$errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $logErrorDetails);
+$errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $logErrorDetails, $logger);
 
 // Register dependencies
 (require __DIR__ . '/src/dependencies.php')($app);

@@ -20,13 +20,15 @@ class PageController {
         error_log("PageController::show() method called");
 
         $slug = $args['slug'] ?? null;
+        $language = $request->getAttribute('language') ?? null;
+
         if (!$slug) {
             return $this->view->render($response->withStatus(400), '404.twig', [
                 'message' => 'Invalid page slug'
             ]);
         }
 
-        $page = $this->payloadService->getPage($slug);
+        $page = $this->payloadService->getPage($slug, $language);
 
         if (!$page) {
             return $this->view->render($response->withStatus(404), '404.twig', [
