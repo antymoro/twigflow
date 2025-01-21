@@ -1,0 +1,8 @@
+/vendor
+/.env
+/.idea
+/.vscode
+/node_modules
+/public/cache
+/public/uploads
+/var/cache
