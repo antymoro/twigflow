@@ -58,13 +58,15 @@ class PayloadService {
         return $this->cache->get("page_slug_{$slug}", function() use ($slug) {
             try {
                 $response = $this->client->get("/cms/api/pages", [
-                    'query' => [
-                        'where' => json_encode(['slug' => ['equals' => $slug]]),
-                        'limit' => 1
-                    ]
+                    'query' => []
                 ]);
                 $data = json_decode($response->getBody(), true);
-                return $data['docs'][0] ?? null;
+                foreach ($data['docs'] as $doc) {
+                    if ($doc['slug'] === $slug) {
+                        return $doc;
+                    }
+                }
+                return null;
             } catch (RequestException $e) {
                 error_log("Failed to resolve slug '{$slug}': " . $e->getMessage());
                 return null;
