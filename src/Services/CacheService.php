@@ -7,14 +7,22 @@ use Symfony\Contracts\Cache\ItemInterface;
 
 class CacheService {
     private FilesystemAdapter $cache;
+    private int $defaultExpireTime;
 
     public function __construct() {
         $this->cache = new FilesystemAdapter();
+        $this->defaultExpireTime = (int) ($_ENV['CACHE_EXPIRE_TIME'] ?? 3600);
     }
 
-    public function get(string $key, callable $callback, int $expiresAfter = 3600) {
+    public function get(string $key, callable $callback, ?int $expiresAfter = null) {
+        $expiresAfter = $expiresAfter ?? $this->defaultExpireTime;
+
         return $this->cache->get($key, function (ItemInterface $item) use ($callback, $expiresAfter) {
-            $item->expiresAfter($expiresAfter);
+            if ($expiresAfter > 0) {
+                $item->expiresAfter($expiresAfter);
+            } else {
+                $item->expiresAfter(null); // Never expire
+            }
             return $callback();
         });
     }

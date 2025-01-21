@@ -21,6 +21,12 @@ require __DIR__ . '/vendor/autoload.php';
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
+// Determine environment
+$environment = $_ENV['APP_ENV'] ?? 'production';
+$displayErrorDetails = $environment === 'development';
+$logErrors = $environment !== 'production';
+$logErrorDetails = $environment !== 'production';
+
 // Create Container using PHP-DI
 $container = new Container();
 
@@ -32,7 +38,7 @@ $app = AppFactory::create();
 $app->addRoutingMiddleware();
 
 // Add Error Middleware (displayErrorDetails, logErrors, logErrorDetails)
-$errorMiddleware = $app->addErrorMiddleware(true, true, true);
+$errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $logErrorDetails);
 
 // Register dependencies
 (require __DIR__ . '/src/dependencies.php')($app);
