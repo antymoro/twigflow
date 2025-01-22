@@ -5,19 +5,18 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
-use App\Services\PayloadService;
+use App\CmsClients\CmsClientInterface;
 
 class PageController {
     private Twig $view;
-    private PayloadService $payloadService;
+    private CmsClientInterface $cmsClient;
 
-    public function __construct(Twig $view, PayloadService $payloadService) {
+    public function __construct(Twig $view, CmsClientInterface $cmsClient) {
         $this->view = $view;
-        $this->payloadService = $payloadService;
+        $this->cmsClient = $cmsClient;
     }
 
     public function show(Request $request, Response $response, array $args): Response {
-        error_log("PageController::show() method called");
 
         $slug = $args['slug'] ?? null;
         $language = $request->getAttribute('language') ?? null;
@@ -28,7 +27,7 @@ class PageController {
             ]);
         }
 
-        $page = $this->payloadService->getPage($slug, $language);
+        $page = $this->cmsClient->getPage($slug, $language);
 
         if (!$page) {
             return $this->view->render($response->withStatus(404), '404.twig', [

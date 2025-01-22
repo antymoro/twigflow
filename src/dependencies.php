@@ -1,58 +1,58 @@
 <?php
 
-namespace App;
-
-use Slim\App;
-use Slim\Views\Twig;
-use Twig\Loader\FilesystemLoader;
-use App\Services\PayloadService;
 use App\Services\CacheService;
+use App\CmsClients\CmsClientInterface;
+use App\CmsClients\PayloadCmsClient;
 use App\Controllers\PageController;
 use App\Controllers\CacheController;
+use Slim\Views\Twig;
+use Twig\Loader\FilesystemLoader;
 
-return function (App $app) {
-    $container = $app->getContainer();
-
-    if ($container === null) {
-        throw new \Exception("Container is not set.");
-    }
-
+return [
     // Register Twig Loader
-    $container->set(\Twig\Loader\LoaderInterface::class, function() {
+    \Twig\Loader\LoaderInterface::class => function() {
         return new FilesystemLoader(__DIR__ . '/../templates');
-    });
+    },
 
     // Register Twig
-    $container->set(Twig::class, function($c) {
+    Twig::class => function($c) {
         $loader = $c->get(\Twig\Loader\LoaderInterface::class);
         return new Twig($loader, ['cache' => false]); // Disable cache for development
-    });
+    },
 
     // Alias 'view' to Twig
-    $container->set('view', function($c) {
+    'view' => function($c) {
         return $c->get(Twig::class);
-    });
+    },
 
     // Register CacheService
-    $container->set(CacheService::class, function() {
-        return new CacheService();
-    });
+    CacheService::class => \DI\create(CacheService::class),
 
-    // Register PayloadService
-    $container->set(PayloadService::class, function($c) {
-        return new PayloadService($_ENV['PAYLOAD_API_URL'], $c->get(CacheService::class));
-    });
+    // Register CmsClientInterface
+    CmsClientInterface::class => function($c) {
+        $cmsClient = $_ENV['CMS_CLIENT'] ?? 'payload';
+        $apiUrl = $_ENV['PAYLOAD_API_URL'];
+        $cacheService = $c->get(CacheService::class);
+
+        switch ($cmsClient) {
+            case 'payload':
+                return new PayloadCmsClient($apiUrl, $cacheService);
+            // Add other CMS clients here
+            default:
+                throw new \Exception("Unsupported CMS client: $cmsClient");
+        }
+    },
 
     // Register PageController
-    $container->set(PageController::class, function($c) {
+    PageController::class => function($c) {
         return new PageController(
             $c->get(Twig::class),
-            $c->get(PayloadService::class)
+            $c->get(CmsClientInterface::class)
         );
-    });
+    },
 
     // Register CacheController
-    $container->set(CacheController::class, function($c) {
+    CacheController::class => function($c) {
         return new CacheController($c->get(CacheService::class));
-    });
-};
+    },
+];

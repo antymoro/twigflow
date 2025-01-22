@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Services;
+namespace App\CmsClients;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use App\Services\CacheService;
 
-class PayloadService {
+class PayloadCmsClient implements CmsClientInterface {
     private string $apiUrl;
     private Client $client;
     private CacheService $cache;
@@ -19,9 +20,6 @@ class PayloadService {
         $this->cache = $cache;
     }
 
-    /**
-     * Get all pages.
-     */
     public function getPages(): array {
         return $this->cache->get('pages', function() {
             try {
@@ -35,40 +33,34 @@ class PayloadService {
         });
     }
 
-    /**
-     * Get a page by slug.
-     */
     public function getPage(string $slug, ?string $language = null): ?array {
-
         $cacheKey = 'page_' . $slug . ($language ? '_' . $language : '');
 
         return $this->cache->get($cacheKey, function() use ($slug, $language) {
-            // Step 1: Resolve slug to ID
             $page = $this->getPageBySlug($slug, $language);
             if (!$page || !isset($page['id'])) {
                 return null;
             }
-
-            // Step 2: Fetch page details using ID
-            return $this->getPageById($page['id']);
+            return $this->getPageById($page['id'], $language);
         });
     }
 
-    /**
-     * Resolve slug to page data (including ID).
-     */
     private function getPageBySlug(string $slug, ?string $language = null): ?array {
-        return $this->cache->get("page_slug_{$slug}", function() use ($slug, $language) {
+        $cacheKey = 'page_slug_' . $slug . ($language ? '_' . $language : '');
 
+        return $this->cache->get($cacheKey, function() use ($slug, $language) {
             $query = [];
             if ($language) {
-                $query['locale'] = $this->mapLanguageToLocale($language);
+                $locale = $this->mapLanguageToLocale($language);
+                $query['locale'] = $locale;
             }
 
-            $response = $this->client->get("/cms/api/pages", [
+            $response = $this->client->get($this->apiUrl . "/pages", [
                 'query' => $query
             ]);
+
             $data = json_decode($response->getBody(), true);
+
             foreach ($data['docs'] as $doc) {
                 if ($doc['slug'] === $slug) {
                     return $doc;
@@ -78,19 +70,20 @@ class PayloadService {
         });
     }
 
-    /**
-     * Get a page by its ID.
-     */
-    private function getPageById(string $id): ?array {
-        return $this->cache->get("page_id_{$id}", function() use ($id) {
-            try {
-                $response = $this->client->get("/cms/api/pages/{$id}");
-                return json_decode($response->getBody(), true);
-            } catch (RequestException $e) {
-                error_log("Failed to fetch page with ID '{$id}': " . $e->getMessage());
-                return null;
-            }
-        });
+    private function getPageById(string $id, ?string $language = null): ?array {
+        $url = $this->apiUrl . '/pages/' . urlencode($id);
+        if ($language) {
+            $locale = $this->mapLanguageToLocale($language);
+            $url .= '?locale=' . urlencode($locale);
+        }
+
+        try {
+            $response = $this->client->get($url);
+            return json_decode($response->getBody(), true);
+        } catch (RequestException $e) {
+            error_log("Failed to fetch page by ID: " . $e->getMessage());
+            return null;
+        }
     }
 
     private function mapLanguageToLocale(string $language): string {

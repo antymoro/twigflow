@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-use DI\Container;
+use DI\ContainerBuilder;
 use Slim\Factory\AppFactory;
 use Slim\Views\TwigMiddleware;
 use Slim\Middleware\ErrorMiddleware;
@@ -12,12 +12,8 @@ use Dotenv\Dotenv;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
-function dd($data) {
-    var_dump($data);
-    die();
-}
-
 require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/src/Utils/helpers.php';
 
 // Load environment variables
 $dotenv = Dotenv::createImmutable(__DIR__);
@@ -30,7 +26,9 @@ $logErrors = true;
 $logErrorDetails = true;
 
 // Create Container using PHP-DI
-$container = new Container();
+$containerBuilder = new ContainerBuilder();
+$containerBuilder->addDefinitions(__DIR__ . '/src/dependencies.php');
+$container = $containerBuilder->build();
 
 // Set the container to create App with
 AppFactory::setContainer($container);
@@ -49,9 +47,6 @@ $logger->pushHandler(new StreamHandler($logFile, Logger::DEBUG));
 
 // Add Error Middleware (displayErrorDetails, logErrors, logErrorDetails)
 $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $logErrorDetails, $logger);
-
-// Register dependencies
-(require __DIR__ . '/src/dependencies.php')($app);
 
 // Add Twig Middleware
 $twig = $container->get('view');
