@@ -47,12 +47,6 @@ if (!file_exists(dirname($logFile))) {
 }
 $logger->pushHandler(new StreamHandler($logFile, Logger::DEBUG));
 
-// Cache dir
-$cacheDir = __DIR__ . '/cache';
-if (!file_exists($cacheDir)) {
-    mkdir($cacheDir, 0777, true);
-}
-
 // Add Error Middleware (displayErrorDetails, logErrors, logErrorDetails)
 $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $logErrorDetails, $logger);
 

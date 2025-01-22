@@ -14,7 +14,7 @@ class PayloadService {
         $this->apiUrl = rtrim($apiUrl, '/');
         $this->client = new Client([
             'base_uri' => $this->apiUrl,
-            'timeout'  => 5.0,
+            'timeout'  => 10.0,
         ]);
         $this->cache = $cache;
     }

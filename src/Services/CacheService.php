@@ -11,9 +11,15 @@ class CacheService {
 
     public function __construct() {
         $cacheDirectory = __DIR__ . '/../../cache';
+        
+        if (!file_exists($cacheDirectory)) {
+            mkdir($cacheDirectory, 0777, true);
+        }
+
         $this->cache = new FilesystemAdapter('', 0, $cacheDirectory);
         $this->defaultExpireTime = (int) ($_ENV['CACHE_EXPIRE_TIME'] ?? 3600);
     }
+
 
     public function get(string $key, callable $callback, ?int $expiresAfter = null) {
         $expiresAfter = $expiresAfter ?? $this->defaultExpireTime;
