@@ -1,10 +1,12 @@
 <?php
 
+use DI\ContainerBuilder;
 use App\Services\CacheService;
 use App\CmsClients\CmsClientInterface;
 use App\CmsClients\PayloadCmsClient;
 use App\Controllers\PageController;
 use App\Controllers\CacheController;
+use App\Modules\Manager\ModuleProcessorManager;
 use Slim\Views\Twig;
 use Twig\Loader\FilesystemLoader;
 
@@ -43,11 +45,15 @@ return [
         }
     },
 
+    // Register ModuleProcessorManager
+    ModuleProcessorManager::class => \DI\create(ModuleProcessorManager::class),
+
     // Register PageController
     PageController::class => function($c) {
         return new PageController(
             $c->get(Twig::class),
-            $c->get(CmsClientInterface::class)
+            $c->get(CmsClientInterface::class),
+            $c->get(ModuleProcessorManager::class)
         );
     },
 
