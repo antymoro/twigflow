@@ -8,6 +8,7 @@ use App\Controllers\CacheController;
 use App\Modules\Manager\ModuleProcessorManager;
 use Slim\Views\Twig;
 use Twig\Loader\FilesystemLoader;
+use Twig\Extension\DebugExtension;
 use Dotenv\Dotenv;
 
 /**
@@ -20,6 +21,10 @@ use Dotenv\Dotenv;
 // Load environment variables from .env file
 $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
+
+// Determine environment (default to 'production' if not set)
+$environment = $_ENV['APP_ENV'] ?? 'production';
+$debug = $environment === 'development';
 
 // Get the cache setting from the environment variable
 $cacheEnabled = filter_var($_ENV['TWIG_CACHE'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
@@ -34,11 +39,16 @@ return [
     },
 
     // Register Twig
-    Twig::class => function ($c) use ($cacheDir) {
+    Twig::class => function ($c) use ($cacheDir, $debug) {
         // Get the Twig Loader from the container
         $loader = $c->get(\Twig\Loader\LoaderInterface::class);
         // Create and return a new Twig instance with the loader and cache configuration
-        return new Twig($loader, ['cache' => $cacheDir]);
+        $twig = new Twig($loader, [
+            'cache' => $cacheDir,
+            'debug' => $debug,
+        ]);
+        $twig->addExtension(new DebugExtension());
+        return $twig;
     },
 
     // Alias 'view' to Twig

@@ -6,5 +6,5 @@ interface CmsClientInterface
 {
     public function getPages(): array;
     public function getPage(string $slug, ?string $language = null): ?array;
-    public function getGlobal(string $global): ?array;
+    public function getScaffold(string $global): ?array;
 }

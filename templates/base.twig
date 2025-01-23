@@ -9,8 +9,8 @@
     <header>
         <nav>
             <ul>
-                {% for item in header.menu %}
-                    <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+                {% for item in scaffold.header.menu.navigation %}
+                    <li><a href="{{ item.link }}">{{ item.label }}</a></li>
                 {% endfor %}
             </ul>
         </nav>
