@@ -42,8 +42,18 @@ class PageController {
             $page['layout'] = $this->moduleProcessorManager->processModules($page['layout']);
         }
 
-        return $this->view->render($response, 'page.twig', [
+        // Fetch global data
+        $globals = $this->fetchGlobals();
+
+        return $this->view->render($response, 'page.twig', array_merge($globals, [
             'modules' => $page['layout'] ?? []
-        ]);
+        ]));
+    }
+
+    private function fetchGlobals(): array {
+        $globals = [];
+        $globals['header'] = $this->cmsClient->getGlobal('header');
+        $globals['footer'] = $this->cmsClient->getGlobal('footer');
+        return $globals;
     }
 }
