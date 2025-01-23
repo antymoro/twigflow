@@ -2,6 +2,7 @@
 
 namespace App\Modules\Manager;
 
-interface ModuleProcessorInterface {
+interface ModuleProcessorInterface
+{
     public function process(array $module): array;
 }

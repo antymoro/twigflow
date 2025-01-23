@@ -6,16 +6,19 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
-class LanguageMiddleware {
+class LanguageMiddleware
+{
     private array $supportedLanguages;
     private string $defaultLanguage;
 
-    public function __construct(array $supportedLanguages, string $defaultLanguage) {
+    public function __construct(array $supportedLanguages, string $defaultLanguage)
+    {
         $this->supportedLanguages = $supportedLanguages;
         $this->defaultLanguage = $defaultLanguage;
     }
 
-    public function __invoke(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface {
+    public function __invoke(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
         $uri = $request->getUri();
         $path = $uri->getPath();
         $segments = explode('/', trim($path, '/'));

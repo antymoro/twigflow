@@ -4,7 +4,8 @@ namespace App\CmsClients;
 
 use App\Utils\ApiFetcher;
 
-class PayloadCmsClient implements CmsClientInterface {
+class PayloadCmsClient implements CmsClientInterface
+{
     private string $apiUrl;
     private ApiFetcher $apiFetcher;
 
@@ -14,7 +15,8 @@ class PayloadCmsClient implements CmsClientInterface {
      * @param string $apiUrl
      * @param CacheService $cache
      */
-    public function __construct(string $apiUrl) {
+    public function __construct(string $apiUrl)
+    {
         $this->apiUrl = rtrim($apiUrl, '/');
         $this->apiFetcher = new ApiFetcher($this->apiUrl);
     }
@@ -24,7 +26,8 @@ class PayloadCmsClient implements CmsClientInterface {
      *
      * @return array
      */
-    public function getPages(): array {
+    public function getPages(): array
+    {
         $url = $this->apiUrl . '/cms/api/pages';
         $response = $this->apiFetcher->fetchFromApi($url);
         return $response['docs'] ?? [];
@@ -37,7 +40,8 @@ class PayloadCmsClient implements CmsClientInterface {
      * @param string|null $language
      * @return array|null
      */
-    public function getPage(string $slug, ?string $language = null): ?array {
+    public function getPage(string $slug, ?string $language = null): ?array
+    {
         $page = $this->getPageBySlug($slug, $language);
         if (!$page || !isset($page['id'])) {
             return null;
@@ -51,7 +55,8 @@ class PayloadCmsClient implements CmsClientInterface {
      * @param string $global
      * @return array|null
      */
-    public function getGlobal(string $global): ?array {
+    public function getGlobal(string $global): ?array
+    {
         $url = $this->apiUrl . '/globals/' . $global;
         return $this->apiFetcher->fetchFromApi($url);
     }
@@ -63,7 +68,8 @@ class PayloadCmsClient implements CmsClientInterface {
      * @param string|null $language
      * @return array|null
      */
-    private function getPageBySlug(string $slug, ?string $language = null): ?array {
+    private function getPageBySlug(string $slug, ?string $language = null): ?array
+    {
         $query = ['slug' => $slug];
         if ($language) {
             $locale = $this->mapLanguageToLocale($language);
@@ -86,7 +92,8 @@ class PayloadCmsClient implements CmsClientInterface {
      * @param string|null $language
      * @return array|null
      */
-    private function getPageById(string $id, ?string $language = null): ?array {
+    private function getPageById(string $id, ?string $language = null): ?array
+    {
         $url = $this->apiUrl . '/pages/' . urlencode($id);
         if ($language) {
             $locale = $this->mapLanguageToLocale($language);
@@ -101,7 +108,8 @@ class PayloadCmsClient implements CmsClientInterface {
      * @param string $language
      * @return string
      */
-    private function mapLanguageToLocale(string $language): string {
+    private function mapLanguageToLocale(string $language): string
+    {
         $locales = [
             'en' => 'en-US',
             'pl' => 'pl-PL',

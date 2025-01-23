@@ -8,7 +8,8 @@ use Slim\Views\Twig;
 use App\CmsClients\CmsClientInterface;
 use App\Modules\Manager\ModuleProcessorManager;
 
-class PageController {
+class PageController
+{
     private Twig $view;
     private CmsClientInterface $cmsClient;
     private ModuleProcessorManager $moduleProcessorManager;
@@ -20,7 +21,8 @@ class PageController {
      * @param CmsClientInterface $cmsClient
      * @param ModuleProcessorManager $moduleProcessorManager
      */
-    public function __construct(Twig $view, CmsClientInterface $cmsClient, ModuleProcessorManager $moduleProcessorManager) {
+    public function __construct(Twig $view, CmsClientInterface $cmsClient, ModuleProcessorManager $moduleProcessorManager)
+    {
         $this->view = $view;
         $this->cmsClient = $cmsClient;
         $this->moduleProcessorManager = $moduleProcessorManager;
@@ -34,7 +36,8 @@ class PageController {
      * @param array $args
      * @return Response
      */
-    public function show(Request $request, Response $response, array $args): Response {
+    public function show(Request $request, Response $response, array $args): Response
+    {
         $slug = $args['slug'] ?? null;
         $language = $request->getAttribute('language') ?? null;
 
@@ -74,7 +77,8 @@ class PageController {
      *
      * @return array
      */
-    private function fetchGlobals(): array {
+    private function fetchGlobals(): array
+    {
         $globals = [];
         $globals['header'] = $this->cmsClient->getGlobal('header');
         $globals['footer'] = $this->cmsClient->getGlobal('footer');

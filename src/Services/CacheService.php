@@ -5,13 +5,15 @@ namespace App\Services;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Contracts\Cache\ItemInterface;
 
-class CacheService {
+class CacheService
+{
     private FilesystemAdapter $cache;
     private int $defaultExpireTime;
 
-    public function __construct() {
+    public function __construct()
+    {
         $cacheDirectory = __DIR__ . '/../../cache';
-        
+
         if (!file_exists($cacheDirectory)) {
             mkdir($cacheDirectory, 0777, true);
         }
@@ -21,7 +23,8 @@ class CacheService {
     }
 
 
-    public function get(string $key, callable $callback, ?int $expiresAfter = null) {
+    public function get(string $key, callable $callback, ?int $expiresAfter = null)
+    {
         $expiresAfter = $expiresAfter ?? $this->defaultExpireTime;
 
         return $this->cache->get($key, function (ItemInterface $item) use ($callback, $expiresAfter) {
@@ -34,11 +37,13 @@ class CacheService {
         });
     }
 
-    public function clear(string $key): bool {
+    public function clear(string $key): bool
+    {
         return $this->cache->deleteItem($key);
     }
 
-    public function clearAll(): bool {
+    public function clearAll(): bool
+    {
         return $this->cache->clear();
     }
 }

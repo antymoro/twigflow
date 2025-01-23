@@ -4,10 +4,12 @@ namespace App\Modules\Manager;
 
 use App\Modules\Manager\ModuleProcessorInterface;
 
-class ModuleProcessorManager {
+class ModuleProcessorManager
+{
     private array $processors = [];
 
-    public function processModules(array $modules): array {
+    public function processModules(array $modules): array
+    {
         foreach ($modules as &$module) {
             $module['blockType'] = str_replace('-', '_', $module['blockType']);
             $type = $module['blockType'] ?? null;
@@ -21,7 +23,8 @@ class ModuleProcessorManager {
         return $modules;
     }
 
-    private function loadProcessor(string $type): void {
+    private function loadProcessor(string $type): void
+    {
         $processorFile = __DIR__ . '/../m_' . $type . '.php';
         if (file_exists($processorFile)) {
             require_once $processorFile;
