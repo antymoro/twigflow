@@ -10,13 +10,18 @@ class ApiFetcher {
     private CacheService $cache;
     private Client $client;
 
-    public function __construct(Client $client, CacheService $cache) {
-        $this->client = $client;
-        $this->cache = $cache;
+    public function __construct(string $baseUri) {
+        $this->client = new Client([
+            'base_uri' => rtrim($baseUri, '/'),
+            'timeout'  => 10.0,
+        ]);
+        $this->cache = new CacheService();
     }
 
-    public function fetch(string $url): ?array {
-
+    public function fetchFromApi(string $url, array $options = []): ?array {
+        if (isset($options['query'])) {
+            $url .= '?' . http_build_query($options['query']);
+        }
         $cacheKey = $this->generateCacheKey($url);
         return $this->cache->get($cacheKey, function() use ($url) {
             try {

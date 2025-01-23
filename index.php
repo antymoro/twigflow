@@ -1,5 +1,6 @@
 <?php
 
+// Display errors for development
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -15,11 +16,11 @@ use Monolog\Handler\StreamHandler;
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/src/Utils/helpers.php';
 
-// Load environment variables
+// Load environment variables from .env file
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-// Determine environment
+// Determine environment (default to 'production' if not set)
 $environment = $_ENV['APP_ENV'] ?? 'production';
 $displayErrorDetails = $environment === 'development';
 $logErrors = true;
@@ -48,7 +49,7 @@ $logger->pushHandler(new StreamHandler($logFile, Logger::DEBUG));
 // Add Error Middleware (displayErrorDetails, logErrors, logErrorDetails)
 $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $logErrorDetails, $logger);
 
-// Add Twig Middleware
+// Add Twig Middleware for rendering templates
 $twig = $container->get('view');
 $app->add(TwigMiddleware::create($app, $twig));
 
