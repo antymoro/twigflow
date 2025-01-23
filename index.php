@@ -40,11 +40,18 @@ $app->addRoutingMiddleware();
 
 // Create a logger
 $logger = new Logger('app');
-$logFile = __DIR__ . '/logs/app.log';
-if (!file_exists(dirname($logFile))) {
-    mkdir(dirname($logFile), 0777, true);
+
+// Define the log directory and file pattern
+$logDir = __DIR__ . '/logs';
+$logFilePattern = $logDir . '/app.log';
+
+// Ensure the log directory exists
+if (!file_exists($logDir)) {
+    mkdir($logDir, 0777, true);
 }
-$logger->pushHandler(new StreamHandler($logFile, Logger::DEBUG));
+
+// Use RotatingFileHandler to create a new log file each day
+$logger->pushHandler(new \Monolog\Handler\RotatingFileHandler($logFilePattern, 0, Logger::DEBUG));
 
 // Add Error Middleware (displayErrorDetails, logErrors, logErrorDetails)
 $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $logErrorDetails, $logger);
