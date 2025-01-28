@@ -7,28 +7,30 @@ use App\Middleware\LanguageMiddleware;
 
 return function (App $app) {
     // Load supported languages from environment
-    $supportedLanguages = explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? '');
+    $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
     $defaultLanguage = $supportedLanguages[0] ?? 'en';
 
-    // Route to clear cache without language prefix
-    $app->get('/clear-cache', \App\Controllers\CacheController::class . ':clearCache')
-        ->setName('cache.clear');
+    // Add Language Middleware
+    $app->add(new LanguageMiddleware($supportedLanguages, $defaultLanguage));
 
-    if (!empty($supportedLanguages[0])) {
-        // Add Language Middleware
-        $app->add(new LanguageMiddleware($supportedLanguages, $defaultLanguage));
+    // Load routing configuration from JSON file
+    $routesConfig = json_decode(file_get_contents(__DIR__ . '/../config/routes.json'), true);
 
-        // Route to handle dynamic pages using the PageController with slug and language prefix
-        $app->get('/{language}/{slug}', \App\Controllers\PageController::class . ':show')
-            ->setName('page.show');
-    } else {
+    // Define a dynamic route for the homepage
+    $app->get('/', \App\Controllers\PageController::class . ':showHomepage')
+        ->setName('page.showHomepage');
 
-        // Define a simple home route
-        $app->get('/', \App\Controllers\PageController::class . ':showHomepage')
-        ->setName('page.showHompagee');
+    // Route to handle dynamic pages using the PageController with slug
+    $app->get('/{slug}', \App\Controllers\PageController::class . ':show')
+    ->setName('page.show');
 
-        // Route to handle dynamic pages using the PageController with slug without language prefix
-        $app->get('/{slug}', \App\Controllers\PageController::class . ':show')
-            ->setName('page.show');
+    // Define routes for collections
+    foreach ($routesConfig['collections'] as $collection => $pattern) {
+        $app->get($pattern, \App\Controllers\PageController::class . ':showCollectionItem')
+            ->setName('page.showCollectionItem')
+            ->add(function ($request, $handler) use ($collection) {
+                return $handler->handle($request->withAttribute('collection', $collection));
+            });
     }
+
 };

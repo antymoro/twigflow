@@ -1,0 +1,8 @@
+{
+    "homepage": {
+      "slug": "homepage"
+    },
+    "collections": {
+      "news": "/news/{slug}"
+    }
+  }

@@ -38,6 +38,14 @@ class SanityCmsClient implements CmsClientInterface
         return $response['result'] ?? null;
     }
 
+    public function getCollectionItem(string $collection, string $slug, ?string $language = null): ?array
+    {
+        $query = '*[_type == "' . $collection . '" && slug.current == "' . $slug . '"][0]';
+        $url = $this->apiUrl . '/data/query/production?query=' . urlencode($query);
+        $response = $this->apiFetcher->fetchFromApi($url);
+        return $response['result'] ?? null;
+    }
+
     public function formatPage($page)
     {
         $pageModules = $page['result']['pageBuilder'] ?? [];

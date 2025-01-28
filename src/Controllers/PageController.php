@@ -78,6 +78,45 @@ class PageController
         return $this->show($request, $response, ['slug' => $homepageSlug]);
     }
 
+    public function showCollectionItem(Request $request, Response $response, array $args): Response {
+        $collection = $request->getAttribute('collection');
+        $slug = $args['slug'] ?? null;
+        $language = null;
+        // $language = $request->getAttribute('language') ?? null;
+
+        if (!$collection || !$slug) {
+            return $this->view->render($response->withStatus(400), '404.twig', [
+                'message' => 'Invalid collection or slug'
+            ]);
+        }
+
+        // Fetch content based on collection and slug
+        $content = $this->cmsClient->getCollectionItem($collection, $slug, $language);
+
+        if (!$content) {
+            return $this->view->render($response->withStatus(404), '404.twig', [
+                'message' => 'Content not found'
+            ]);
+        }
+
+        $module = array_merge($content, ['type' => $collection]);
+
+        $content['modules'][] = $module;
+
+        if (isset($content['modules']) && is_array($content['modules'])) {
+            $content['modules'] = $this->moduleProcessorManager->processModules($content['modules']);
+        }
+
+        // Fetch global data
+        $scaffold = $this->getScaffold();
+
+        // Render the content with the combined data
+        return $this->view->render($response, 'page.twig', [
+            'modules' => $content['modules'] ?? [],
+            'scaffold' => $scaffold
+        ]);
+    }
+
     /**
      * Fetch global data such as header and footer.
      *
