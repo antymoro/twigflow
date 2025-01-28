@@ -35,8 +35,13 @@ PHP Twig Renderer is a web application built with the Slim Framework and Twig te
    Create a `.env` file in the root directory and add the necessary environment variables:
 
    ```env
-   PAYLOAD_API_URL==https://example.com
-   CACHE_EXPIRE_TIME=3600
+   API_URL=https://id.api.sanity.io/v2022-03-07
+   CMS_CLIENT=sanity
+   APP_ENV=development
+   CACHE_EXPIRE_TIME=0
+   TWIG_CACHE=false
+   HOMEPAGE_SLUG=homepage
+
    ```
 
 4. **Set up the web server:**
