@@ -22,6 +22,11 @@ return function (App $app) {
         $app->get('/{language}/{slug}', \App\Controllers\PageController::class . ':show')
             ->setName('page.show');
     } else {
+
+        // Define a simple home route
+        $app->get('/', \App\Controllers\PageController::class . ':showHomepage')
+        ->setName('page.showHompagee');
+
         // Route to handle dynamic pages using the PageController with slug without language prefix
         $app->get('/{slug}', \App\Controllers\PageController::class . ':show')
             ->setName('page.show');

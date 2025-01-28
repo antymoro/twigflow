@@ -60,12 +60,6 @@ $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $l
 $twig = $container->get('view');
 $app->add(TwigMiddleware::create($app, $twig));
 
-// Define a simple home route (for testing)
-$app->get('/', function ($request, $response, $args) {
-    $response->getBody()->write("Hello world!");
-    return $response;
-});
-
 // Load application routes using the route loader function
 (require __DIR__ . '/src/routes.php')($app);
 

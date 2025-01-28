@@ -73,6 +73,11 @@ class PageController
         ]);
     }
 
+    public function showHomepage(Request $request, Response $response): Response {
+        $homepageSlug = $_ENV['HOMEPAGE_SLUG'] ?? 'homepage';
+        return $this->show($request, $response, ['slug' => $homepageSlug]);
+    }
+
     /**
      * Fetch global data such as header and footer.
      *
