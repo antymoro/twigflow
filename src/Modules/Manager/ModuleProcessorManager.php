@@ -11,8 +11,7 @@ class ModuleProcessorManager
     public function processModules(array $modules): array
     {
         foreach ($modules as &$module) {
-            $module['blockType'] = str_replace('-', '_', $module['blockType']);
-            $type = $module['blockType'] ?? null;
+            $type = $module['type'] ?? null;
             if ($type && !isset($this->processors[$type])) {
                 $this->loadProcessor($type);
             }

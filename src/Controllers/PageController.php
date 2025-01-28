@@ -59,8 +59,8 @@ class PageController
         }
 
         // Process the modules
-        if (isset($page['layout']) && is_array($page['layout'])) {
-            $page['layout'] = $this->moduleProcessorManager->processModules($page['layout']);
+        if (isset($page['modules']) && is_array($page['modules'])) {
+            $page['modules'] = $this->moduleProcessorManager->processModules($page['modules']);
         }
 
         // Fetch global data
@@ -68,7 +68,7 @@ class PageController
 
         // Render the page with the combined data
         return $this->view->render($response, 'page.twig', [
-            'modules' => $page['layout'] ?? [],
+            'modules' => $page['modules'] ?? [],
             'scaffold' => $scaffold,
         ]);
     }

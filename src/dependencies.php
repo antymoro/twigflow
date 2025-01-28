@@ -3,6 +3,7 @@
 use App\Services\CacheService;
 use App\CmsClients\CmsClientInterface;
 use App\CmsClients\PayloadCmsClient;
+use App\CmsClients\SanityCmsClient;
 use App\Controllers\PageController;
 use App\Controllers\CacheController;
 use App\Modules\Manager\ModuleProcessorManager;
@@ -64,14 +65,15 @@ return [
     CmsClientInterface::class => function ($c) {
         // Determine the CMS client to use based on environment variables
         $cmsClient = $_ENV['CMS_CLIENT'] ?? 'payload';
-        $apiUrl = $_ENV['PAYLOAD_API_URL'];
+        $apiUrl = $_ENV['API_URL'];
         $cacheService = $c->get(CacheService::class);
 
         // Return the appropriate CMS client implementation
-        switch ($cmsClient) {
+        switch (strtolower($cmsClient)) {
             case 'payload':
                 return new PayloadCmsClient($apiUrl, $cacheService);
-                // Add other CMS clients here
+            case 'sanity':
+                return new SanityCmsClient($apiUrl, $cacheService);
             default:
                 throw new \Exception("Unsupported CMS client: $cmsClient");
         }
