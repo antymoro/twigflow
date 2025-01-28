@@ -48,6 +48,10 @@ class SanityCmsClient implements CmsClientInterface
 
     public function formatPage($page)
     {
+        if (empty($page['result'])) {
+            return null;
+        }
+        
         $pageModules = $page['result']['pageBuilder'] ?? [];
 
         $modulesArray = [];

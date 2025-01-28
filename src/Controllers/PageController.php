@@ -30,97 +30,92 @@ class PageController
 
     /**
      * Show a page based on the provided slug and language.
-     *
-     * @param Request $request
-     * @param Response $response
-     * @param array $args
-     * @return Response
      */
     public function show(Request $request, Response $response, array $args): Response
     {
         $slug = $args['slug'] ?? null;
         $language = $request->getAttribute('language') ?? null;
 
-        // Validate the slug
         if (!$slug) {
-            return $this->view->render($response->withStatus(400), '404.twig', [
-                'message' => 'Invalid page slug'
-            ]);
+            return $this->renderError($response, 400, 'Invalid page slug');
         }
 
         // Fetch the page data
         $page = $this->cmsClient->getPage($slug, $language);
 
-        // Handle page not found
         if (!$page) {
-            return $this->view->render($response->withStatus(404), '404.twig', [
-                'message' => 'Page not found'
-            ]);
+            return $this->renderError($response, 404, 'Page not found');
         }
 
-        // Process the modules
-        if (isset($page['modules']) && is_array($page['modules'])) {
-            $page['modules'] = $this->moduleProcessorManager->processModules($page['modules']);
-        }
-
-        // Fetch global data
-        $scaffold = $this->getScaffold();
-
-        // Render the page with the combined data
-        return $this->view->render($response, 'page.twig', [
-            'modules' => $page['modules'] ?? [],
-            'scaffold' => $scaffold,
-        ]);
+        return $this->renderPage($response, $page);
     }
 
-    public function showHomepage(Request $request, Response $response): Response {
+    /**
+     * Show the homepage, falling back to "homepage" if not set in the environment.
+     */
+    public function showHomepage(Request $request, Response $response): Response
+    {
         $homepageSlug = $_ENV['HOMEPAGE_SLUG'] ?? 'homepage';
         return $this->show($request, $response, ['slug' => $homepageSlug]);
     }
 
-    public function showCollectionItem(Request $request, Response $response, array $args): Response {
+    /**
+     * Show a collection item, determined by the "collection" attribute and "slug" argument.
+     */
+    public function showCollectionItem(Request $request, Response $response, array $args): Response
+    {
         $collection = $request->getAttribute('collection');
         $slug = $args['slug'] ?? null;
-        $language = null;
+        // $language can be retrieved from the request if needed
+        $language = null; 
         // $language = $request->getAttribute('language') ?? null;
 
         if (!$collection || !$slug) {
-            return $this->view->render($response->withStatus(400), '404.twig', [
-                'message' => 'Invalid collection or slug'
-            ]);
+            return $this->renderError($response, 400, 'Invalid collection or slug');
         }
 
         // Fetch content based on collection and slug
         $content = $this->cmsClient->getCollectionItem($collection, $slug, $language);
 
         if (!$content) {
-            return $this->view->render($response->withStatus(404), '404.twig', [
-                'message' => 'Content not found'
-            ]);
+            return $this->renderError($response, 404, 'Content not found');
         }
 
+        // Example logic for adding the collection as a module
         $module = array_merge($content, ['type' => $collection]);
-
         $content['modules'][] = $module;
 
-        if (isset($content['modules']) && is_array($content['modules'])) {
-            $content['modules'] = $this->moduleProcessorManager->processModules($content['modules']);
+        return $this->renderPage($response, $content);
+    }
+
+    /**
+     * Helper method to render data in a 'page.twig' template.
+     */
+    private function renderPage(Response $response, array $data): Response
+    {
+        if (isset($data['modules']) && is_array($data['modules'])) {
+            $data['modules'] = $this->moduleProcessorManager->processModules($data['modules']);
         }
 
-        // Fetch global data
         $scaffold = $this->getScaffold();
-
-        // Render the content with the combined data
         return $this->view->render($response, 'page.twig', [
-            'modules' => $content['modules'] ?? [],
-            'scaffold' => $scaffold
+            'modules' => $data['modules'] ?? [],
+            'scaffold' => $scaffold,
+        ]);
+    }
+
+    /**
+     * Helper method to render error pages.
+     */
+    private function renderError(Response $response, int $statusCode, string $message): Response
+    {
+        return $this->view->render($response->withStatus($statusCode), '404.twig', [
+            'message' => $message
         ]);
     }
 
     /**
      * Fetch global data such as header and footer.
-     *
-     * @return array
      */
     private function getScaffold(): array
     {
