@@ -20,9 +20,13 @@ return function (App $app) {
     $app->get('/', \App\Controllers\PageController::class . ':showHomepage')
         ->setName('page.showHomepage');
 
+    // Route to clear cache without language prefix
+    $app->get('/clear-cache', \App\Controllers\CacheController::class . ':clearCache')
+        ->setName('cache.clear');
+
     // Route to handle dynamic pages using the PageController with slug
     $app->get('/{slug}', \App\Controllers\PageController::class . ':show')
-    ->setName('page.show');
+        ->setName('page.show');
 
     // Define routes for collections
     foreach ($routesConfig['collections'] as $collection => $pattern) {
@@ -32,5 +36,4 @@ return function (App $app) {
                 return $handler->handle($request->withAttribute('collection', $collection));
             });
     }
-
 };
