@@ -64,6 +64,11 @@ class PayloadCmsClient implements CmsClientInterface
         return $this->apiFetcher->fetchFromApi($url);
     }
 
+    public function getCollectionItem(string $collection, string $slug, ?string $language = null): ?array
+    {
+        return [];
+    }
+
     private function mapLanguageToLocale(string $language): string
     {
         $locales = [

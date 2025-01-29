@@ -66,9 +66,7 @@ class PageController
     {
         $collection = $request->getAttribute('collection');
         $slug = $args['slug'] ?? null;
-        // $language can be retrieved from the request if needed
-        $language = null; 
-        // $language = $request->getAttribute('language') ?? null;
+        $language = $request->getAttribute('language') ?? null;
 
         if (!$collection || !$slug) {
             return $this->renderError($response, 400, 'Invalid collection or slug');
