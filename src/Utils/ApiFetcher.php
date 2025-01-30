@@ -13,9 +13,18 @@ class ApiFetcher
 
     public function __construct(string $baseUri)
     {
+        $headers = [];
+
+        $apiKey = $_ENV['API_KEY'] ?? null;
+
+        if ($apiKey) {
+            $headers['Authorization'] = 'Bearer ' . $apiKey;
+        }
+
         $this->client = new Client([
             'base_uri' => rtrim($baseUri, '/'),
             'timeout'  => 10.0,
+            'headers'  => $headers,
         ]);
         $this->cache = new CacheService();
     }

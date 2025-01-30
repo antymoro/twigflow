@@ -1,0 +1,14 @@
+on:
+    push:
+      branches:
+        - main
+  
+name: Build Dev
+  
+jobs:
+    updates_repos:
+      runs-on: ubuntu-latest
+      steps:
+        - name: h7 dev call
+          run: |
+            curl -n -X PATCH "https://github.sunship.one/?path=huncwot&token=${{secrets.H7_TOKEN}}
