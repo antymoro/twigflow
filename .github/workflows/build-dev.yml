@@ -11,4 +11,4 @@ jobs:
       steps:
         - name: h7 dev call
           run: |
-            curl -n -X PATCH "https://github.sunship.one/?path=huncwot&token=${{secrets.H7_TOKEN}}
+            curl -n -X PATCH "https://github.sunship.one/?path=sanity&token=${{secrets.H7_TOKEN}}
