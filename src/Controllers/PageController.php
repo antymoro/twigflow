@@ -98,7 +98,7 @@ class PageController
     {
         $template = 'page.twig';
         if (file_exists($this->userTemplatePath . $template)) {
-            $template = 'resources/templates/' . $template;
+            $template = $template;
         } else {
             $template = $this->templatePath . $template;
         }

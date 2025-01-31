@@ -20,7 +20,7 @@ use Dotenv\Dotenv;
  */
 
 // Load environment variables from .env file
-$dotenv = Dotenv::createImmutable(__DIR__ . '/../');
+$dotenv = Dotenv::createImmutable(__DIR__ . '/../../../../');
 $dotenv->load();
 
 // Determine environment (default to 'production' if not set)
@@ -36,7 +36,7 @@ return [
     // Register Twig Loader
     \Twig\Loader\LoaderInterface::class => function () {
         // FilesystemLoader is used to load Twig templates from the specified directory
-        return new FilesystemLoader(__DIR__ . '/../templates');
+        return new FilesystemLoader(__DIR__ . '/../../../../resources/templates');
     },
 
     // Register Twig
