@@ -35,6 +35,14 @@ class Commands
                 $filesystem->mirror($sourceDir . '/templates', $targetDir . '/templates', null, ['override' => false]);
                 $filesystem->mirror($sourceDir . '/modules', $targetDir . '/modules', null, ['override' => false]);
 
+                // Copy index.php to the project root
+                $indexFileSource = __DIR__ . '/../../index.php';
+                $indexFileTarget = getcwd() . '/index.php';
+
+                if (!$filesystem->exists($indexFileTarget)) {
+                    $filesystem->copy($indexFileSource, $indexFileTarget);
+                }
+
                 $output->writeln('Resources published successfully.');
 
                 return Command::SUCCESS;
