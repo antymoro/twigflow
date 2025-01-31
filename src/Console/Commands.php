@@ -25,7 +25,7 @@ class Commands
             protected function execute(InputInterface $input, OutputInterface $output): int
             {
                 $filesystem = new Filesystem();
-                $sourceDir = __DIR__ . '/../../resources';
+                $sourceDir = __DIR__ . '/../../../resources';
                 $targetDir = getcwd() . '/resources';
 
                 $output->writeln("Source Directory: $sourceDir");
@@ -48,7 +48,7 @@ class Commands
                 $output->writeln("Copied modules from $sourceDir/modules to $targetDir/modules");
 
                 // Copy index.php to the project root
-                $indexFileSource = __DIR__ . '/../../index.php';
+                $indexFileSource = __DIR__ . '/../../../index.php';
                 $indexFileTarget = getcwd() . '/index.php';
 
                 $output->writeln("Index File Source: $indexFileSource");
