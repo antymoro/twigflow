@@ -96,6 +96,11 @@ class PageController
      */
     private function renderPage(Response $response, array $data): Response
     {
+
+        if (isset($data['modules']) && is_array($data['modules'])) {
+            $data['modules'] = $this->moduleProcessorManager->processModules($data['modules']);
+        }
+        
         $template = 'page.twig';
         if (file_exists($this->userTemplatePath . $template)) {
             $template = $template;
