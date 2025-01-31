@@ -1,6 +1,6 @@
-# PHP Twig Renderer
+# TwigFlow
 
-PHP Twig Renderer is a web application built with the Slim Framework and Twig templating engine. It fetches content from various CMS APIs (e.g., Payload CMS) and renders it using Twig templates. The application also includes a caching mechanism to reduce the number of API requests and improve performance.
+TwigFlow is a web application built with the Slim Framework and Twig templating engine. It fetches content from various CMS APIs (e.g., Payload CMS) and renders it using Twig templates. The application also includes a caching mechanism to reduce the number of API requests and improve performance.
 
 ## Features
 
@@ -17,17 +17,16 @@ PHP Twig Renderer is a web application built with the Slim Framework and Twig te
 
 ## Installation
 
-1. **Clone the repository:**
+1. **Install the package:**
 
    ```sh
-   git clone https://github.com/your-username/php-twig-renderer.git
-   cd php-twig-renderer
+   composer require antymoro/twigflow:dev-main --prefer-stable
    ```
 
-2. **Install dependencies:**
+2. **Copy user editable files to the root directory:**
 
    ```sh
-   composer install
+   php vendor/antymoro/twigflow/src/cli publish:resources
    ```
 
 3. **Set up environment variables:**
@@ -71,48 +70,3 @@ To clear the cache, send a POST request to:
 ```
 http://localhost:[port]/clear-cache
 ```
-
-## Deployment
-
-To deploy the application to a production environment, follow these steps:
-
-1. **Set up the server:**
-
-   Ensure the server meets the requirements (PHP 7.4 or higher, Composer).
-
-2. **Clone the repository:**
-
-   ```sh
-   git clone https://github.com/your-username/php-twig-renderer.git
-   cd php-twig-renderer
-   ```
-
-3. **Install dependencies:**
-
-   ```sh
-   composer install --no-dev --optimize-autoloader
-   ```
-
-4. **Set up environment variables:**
-
-   Create a `.env` file in the root directory and add the necessary environment variables.
-
-5. **Set up the web server:**
-
-   Configure the web server (e.g., Apache, Nginx) to point to the `public` directory of the project.
-
-6. **Set up caching:**
-
-   Ensure the server has write permissions to the cache directory (`var/cache`).
-
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-- Slim Framework
-- Twig
-- Payload CMS
-- Symfony Cache
