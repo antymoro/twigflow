@@ -2,38 +2,66 @@
 
 namespace App\Modules\Manager;
 
-use App\Modules\Manager\ModuleProcessorInterface;
+use GuzzleHttp\Client;
+use GuzzleHttp\Promise;
+use Symfony\Component\Filesystem\Filesystem;
 
 class ModuleProcessorManager
 {
-    private array $processors = [];
+    private string $modulePath;
+    private string $userModulePath;
+    private Client $client;
+    private Filesystem $filesystem;
 
-    public function processModules(array $modules): array
+    public function __construct(Client $client, string $modulePath = 'src/Modules/', string $userModulePath = 'resources/modules/')
+    {
+        $this->client = $client;
+        $this->modulePath = $modulePath;
+        $this->userModulePath = $userModulePath;
+        $this->filesystem = new Filesystem();
+    }
+
+    public function initializeModules(array $modules): array
     {
         foreach ($modules as &$module) {
-            $type = $module['type'] ?? null;
-            if ($type && !isset($this->processors[$type])) {
-                $this->loadProcessor($type);
-            }
-            if ($type && isset($this->processors[$type])) {
-                $module = $this->processors[$type]->process($module);
-            }
+            $module = $this->processModule($module, 'queue');
         }
+
         return $modules;
     }
 
-    private function loadProcessor(string $type): void
+    public function finalizeModules(array $modules): array
     {
-        $processorFile = __DIR__ . '/../m_' . $type . '.php';
-        if (file_exists($processorFile)) {
-            require_once $processorFile;
-            $className = 'App\\Modules\\m_' . $type;
-            if (class_exists($className)) {
-                $processor = new $className();
-                if ($processor instanceof ModuleProcessorInterface) {
-                    $this->processors[$type] = $processor;
-                }
+        foreach ($modules as &$module) {
+            $module = $this->processModule($module, 'process');
+        }
+
+        return $modules;
+    }
+
+    private function processModule(array $module, string $phase): array
+    {
+        $moduleType = strtolower($module['_type']);
+        $userModuleClass = $this->userModulePath . 'm_' . $moduleType . '.php';
+        $defaultModuleClass = $this->modulePath . 'm_' . $moduleType . '.php';
+
+        if ($this->filesystem->exists($userModuleClass)) {
+            require_once $userModuleClass;
+            $className = 'App\\Modules\\m_' . ucfirst($moduleType);
+        } elseif ($this->filesystem->exists($defaultModuleClass)) {
+            require_once $defaultModuleClass;
+            $className = 'App\\Modules\\m_' . ucfirst($moduleType);
+        } else {
+            return $module;
+        }
+
+        if (class_exists($className)) {
+            $processor = new $className($this->client);
+            if ($processor instanceof ModuleProcessorInterface) {
+                return $processor->$phase($module);
             }
         }
+
+        return $module;
     }
 }

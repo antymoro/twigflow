@@ -13,19 +13,24 @@ class PageController
     private Twig $view;
     private CmsClientInterface $cmsClient;
     private ModuleProcessorManager $moduleProcessorManager;
+    private string $templatePath;
+    private string $userTemplatePath;
 
     /**
      * Constructor to initialize dependencies.
      *
      * @param Twig $view
      * @param CmsClientInterface $cmsClient
-     * @param ModuleProcessorManager $moduleProcessorManager
+     * @param ModuleProcessorManager $moduleProcessorManage
+     * 
      */
-    public function __construct(Twig $view, CmsClientInterface $cmsClient, ModuleProcessorManager $moduleProcessorManager)
+    public function __construct(Twig $view, CmsClientInterface $cmsClient, ModuleProcessorManager $moduleProcessorManager, string $templatePath = 'src/views/')
     {
         $this->view = $view;
         $this->cmsClient = $cmsClient;
         $this->moduleProcessorManager = $moduleProcessorManager;
+        $this->templatePath = $templatePath;
+        $this->userTemplatePath = getcwd() . '/resources/templates/';
     }
 
     /**
@@ -91,16 +96,20 @@ class PageController
      */
     private function renderPage(Response $response, array $data): Response
     {
-        if (isset($data['modules']) && is_array($data['modules'])) {
-            $data['modules'] = $this->moduleProcessorManager->processModules($data['modules']);
+        $template = 'page.twig';
+        if (file_exists($this->userTemplatePath . $template)) {
+            $template = 'resources/templates/' . $template;
+        } else {
+            $template = $this->templatePath . $template;
         }
 
         $scaffold = $this->getScaffold();
-        return $this->view->render($response, 'page.twig', [
+        return $this->view->render($response, $template, [
             'modules' => $data['modules'] ?? [],
             'scaffold' => $scaffold,
         ]);
     }
+
 
     /**
      * Helper method to render error pages.

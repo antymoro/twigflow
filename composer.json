@@ -1,5 +1,16 @@
 {
+  "name": "antymoro/twigflow",
+  "description": "A PHP application with customizable modules and templates, supporting Payload and Sanity CMSes.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Daniel Wozniak",
+      "email": "easelpainting@gmail.com"
+    }
+  ],
   "require": {
+    "php": "^7.4 || ^8.0",
     "slim/slim": "^4.0",
     "slim/psr7": "^1.0",
     "slim/twig-view": "^3.0",
@@ -7,11 +18,32 @@
     "php-di/php-di": "^7.0",
     "guzzlehttp/guzzle": "^7.9",
     "symfony/cache": "^7.2",
+    "symfony/console": "^5.0",
+    "symfony/filesystem": "^5.0",
     "monolog/monolog": "^3.8"
   },
   "autoload": {
     "psr-4": {
       "App\\": "src/"
+    },
+    "exclude-from-classmap": [
+      "/resources/"
+    ]
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-main": "1.0.x-dev"
     }
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "App\\Console\\Commands::publishResources"
+    ],
+    "post-update-cmd": [
+      "App\\Console\\Commands::publishResources"
+    ]
+  },
+  "config": {
+    "optimize-autoloader": true
   }
 }
