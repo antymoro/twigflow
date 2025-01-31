@@ -14,7 +14,7 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 require __DIR__ . '/vendor/autoload.php';
-require __DIR__ . '/src/Utils/helpers.php';
+require __DIR__ . '/vendor/antymoro/twigflow/src/Utils/helpers.php';
 
 // Load environment variables from .env file
 $dotenv = Dotenv::createImmutable(__DIR__);
@@ -28,7 +28,7 @@ $logErrorDetails = true;
 
 // Create Container using PHP-DI
 $containerBuilder = new ContainerBuilder();
-$containerBuilder->addDefinitions(__DIR__ . '/src/dependencies.php');
+$containerBuilder->addDefinitions(__DIR__ . '/vendor/antymoro/twigflow/src/dependencies.php');
 $container = $containerBuilder->build();
 
 // Set the container to create App with
@@ -61,7 +61,7 @@ $twig = $container->get('view');
 $app->add(TwigMiddleware::create($app, $twig));
 
 // Load application routes using the route loader function
-(require __DIR__ . '/src/routes.php')($app);
+(require __DIR__ . '/vendor/antymoro/twigflow/src/routes.php')($app);
 
 // Run the application
 $app->run();

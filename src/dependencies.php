@@ -10,6 +10,7 @@ use App\Modules\Manager\ModuleProcessorManager;
 use Slim\Views\Twig;
 use Twig\Loader\FilesystemLoader;
 use Twig\Extension\DebugExtension;
+use GuzzleHttp\Client;
 use Dotenv\Dotenv;
 
 /**
@@ -79,8 +80,15 @@ return [
         }
     },
 
-    // Register ModuleProcessorManager
-    ModuleProcessorManager::class => \DI\create(ModuleProcessorManager::class),
+    // Guzzle HTTP Client
+    Client::class => function () {
+        return new Client();
+    },
+    // ModuleProcessorManager
+    ModuleProcessorManager::class => function ($c) {
+        $client = $c->get(Client::class);
+        return new ModuleProcessorManager($client);
+    },
 
     // Register PageController
     PageController::class => function ($c) {
