@@ -1,5 +1,9 @@
 <?php
 
+define('BASE_PATH', __DIR__);
+define('TWIGFLOW_PATH', BASE_PATH . '/vendor/antymoro/twigflow');
+
+
 // Display errors for development
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -13,11 +17,11 @@ use Dotenv\Dotenv;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
-require __DIR__ . '/vendor/autoload.php';
-require __DIR__ . '/vendor/antymoro/twigflow/src/Utils/helpers.php';
+require BASE_PATH . '/vendor/autoload.php';
+require TWIGFLOW_PATH . '/src/Utils/helpers.php';
 
 // Load environment variables from .env file
-$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv = Dotenv::createImmutable(BASE_PATH);
 $dotenv->load();
 
 // Determine environment (default to 'production' if not set)
@@ -28,7 +32,7 @@ $logErrorDetails = true;
 
 // Create Container using PHP-DI
 $containerBuilder = new ContainerBuilder();
-$containerBuilder->addDefinitions(__DIR__ . '/vendor/antymoro/twigflow/src/dependencies.php');
+$containerBuilder->addDefinitions(TWIGFLOW_PATH . '/src/dependencies.php');
 $container = $containerBuilder->build();
 
 // Set the container to create App with
@@ -42,7 +46,7 @@ $app->addRoutingMiddleware();
 $logger = new Logger('app');
 
 // Define the log directory and file pattern
-$logDir = __DIR__ . '/logs';
+$logDir = BASE_PATH . '/logs';
 $logFilePattern = $logDir . '/app.log';
 
 // Ensure the log directory exists
@@ -61,7 +65,7 @@ $twig = $container->get('view');
 $app->add(TwigMiddleware::create($app, $twig));
 
 // Load application routes using the route loader function
-(require __DIR__ . '/vendor/antymoro/twigflow/src/routes.php')($app);
+(require TWIGFLOW_PATH . '/src/routes.php')($app);
 
 // Run the application
 $app->run();

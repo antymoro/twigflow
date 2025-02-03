@@ -21,7 +21,7 @@ use Dotenv\Dotenv;
  */
 
 // Load environment variables from .env file
-$dotenv = Dotenv::createImmutable(__DIR__ . '/../../../../');
+$dotenv = Dotenv::createImmutable(BASE_PATH);
 $dotenv->load();
 
 // Determine environment (default to 'production' if not set)
@@ -31,13 +31,13 @@ $debug = $environment === 'development';
 // Get the cache setting from the environment variable
 $cacheEnabled = filter_var($_ENV['TWIG_CACHE'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
 // Set the cache directory based on the environment variable
-$cacheDir = $cacheEnabled ? __DIR__ . '/../cache' : false;
+$cacheDir = $cacheEnabled ? BASE_PATH . '/cache' : false;
 
 return [
     // Register Twig Loader
     \Twig\Loader\LoaderInterface::class => function () {
         // FilesystemLoader is used to load Twig templates from the specified directory
-        return new FilesystemLoader(__DIR__ . '/../../../../application/views');
+        return new FilesystemLoader(BASE_PATH . '/application/views');
     },
 
     // Register Twig
