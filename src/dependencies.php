@@ -90,7 +90,8 @@ return [
     // Register ModuleProcessorManager
     ModuleProcessorManager::class => function ($c) {
         $apiFetcher = $c->get(ApiFetcher::class);
-        return new ModuleProcessorManager($apiFetcher);
+        $cacheService = $c->get(CacheService::class);
+        return new ModuleProcessorManager($apiFetcher, $cacheService);
     },
 
     // Register PageController

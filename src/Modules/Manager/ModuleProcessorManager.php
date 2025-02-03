@@ -5,20 +5,24 @@ namespace App\Modules\Manager;
 use GuzzleHttp\Promise\Utils;
 use App\Modules\Manager\ModuleProcessorInterface;
 use App\Utils\ApiFetcher;
+use App\Services\CacheService;
 
 class ModuleProcessorManager
 {
     private array $processors = [];
     private ApiFetcher $apiFetcher;
+    private CacheService $cacheService;
 
-    public function __construct(ApiFetcher $apiFetcher)
+    public function __construct(ApiFetcher $apiFetcher, CacheService $cacheService)
     {
         $this->apiFetcher = $apiFetcher;
+        $this->cacheService = $cacheService;
     }
 
     public function processModules(array $modules): array
     {
         $promises = [];
+
         foreach ($modules as &$module) {
             $type = $module['type'] ?? null;
             if ($type && !isset($this->processors[$type])) {
@@ -26,17 +30,28 @@ class ModuleProcessorManager
             }
 
             if ($type && isset($this->processors[$type])) {
-                $promises[$type] = $this->processors[$type]->fetchData($module, $this->apiFetcher);
+                $processor = $this->processors[$type];
+                $dataArray = $processor->fetchData($module, $this->apiFetcher);
+
+                $promises[$type] = Utils::all($dataArray)->then(function ($resolvedArray) {
+                    foreach ($resolvedArray as $key => $response) {
+                        if ($response instanceof \Psr\Http\Message\ResponseInterface) {
+                            $resolvedArray[$key] = json_decode($response->getBody()->getContents(), true);
+                        }
+                    }
+                    return $resolvedArray;
+                });
             }
         }
 
-        // wait for all promises to complete
+        // Wait for all promises to complete
         $results = Utils::settle($promises)->wait();
 
-        // process the modules with the fetched data
+        // Process modules with the resolved data
         foreach ($modules as &$module) {
             $type = $module['type'] ?? null;
             if ($type && isset($this->processors[$type])) {
+                // $results[$type]['value'] is the resolved array from Utils::all
                 $module = $this->processors[$type]->process($module, $results[$type]['value'] ?? []);
             }
         }
