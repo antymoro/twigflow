@@ -67,31 +67,30 @@ class SanityCmsClient implements CmsClientInterface
         return $page;
     }
 
-
     private function slugify(string $text): string
-{
-    // Replace non-letter or digits by -
-    $text = preg_replace('~[^\pL\d]+~u', '-', $text);
+    {
+        // Replace non-letter or digits by _
+        $text = preg_replace('~[^\pL\d]+~u', '_', $text);
 
-    // Transliterate
-    $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+        // Transliterate
+        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
 
-    // Remove unwanted characters
-    $text = preg_replace('~[^-\w]+~', '', $text);
+        // Remove unwanted characters
+        $text = preg_replace('~[^_\w]+~', '', $text);
 
-    // Trim
-    $text = trim($text, '-');
+        // Trim
+        $text = trim($text, '_');
 
-    // Remove duplicate -
-    $text = preg_replace('~-+~', '-', $text);
+        // Remove duplicate _
+        $text = preg_replace('~_+~', '_', $text);
 
-    // Lowercase
-    $text = strtolower($text);
+        // Lowercase
+        $text = strtolower($text);
 
-    if (empty($text)) {
-        return 'n-a';
+        if (empty($text)) {
+            return 'n_a';
+        }
+
+        return $text;
     }
-
-    return $text;
-}
 }
