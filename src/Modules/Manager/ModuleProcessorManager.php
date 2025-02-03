@@ -24,7 +24,7 @@ class ModuleProcessorManager
 
     private function loadProcessor(string $type): void
     {
-        $processorFile = __DIR__ . '/../../../modules/m_' . $type . '.php';
+        $processorFile = __DIR__ . '/../../../application/modules/m_' . $type . '.php';
         if (file_exists($processorFile)) {
             require_once $processorFile;
             $className = 'App\\Modules\\m_' . $type;
