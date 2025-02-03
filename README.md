@@ -8,25 +8,27 @@ TwigFlow is a web application built with the Slim Framework and Twig templating 
 - Renders content using Twig templates
 - Caching mechanism to reduce API requests
 - Supports multiple CMS services (e.g., Payload CMS, Sanity)
+- Works on module-based logic with optional feature to process the module in PHP with additional info from CMSes (e.g., sending another request to fetch featured news in the news module) supporting async requests
 
 ## Requirements
 
-- PHP 7.4 or higher
+- PHP 8.2 or higher
 - Composer
 - MAMP (or any other local development environment)
 
 ## Installation
 
-1. **Install the package:**
+1. **Clone the TwigFlow boilerplate repository:**
+
+   ```sh
+   git clone https://github.com/antymoro/twigflow-boilerplate.git
+   cd twigflow-boilerplate
+   ```
+
+2. **Install the TwigFlow package via Composer:**
 
    ```sh
    composer require antymoro/twigflow:dev-main --prefer-stable
-   ```
-
-2. **Copy user editable files to the root directory:**
-
-   ```sh
-   php vendor/antymoro/twigflow/src/cli publish:resources
    ```
 
 3. **Set up environment variables:**
