@@ -58,12 +58,12 @@ class SanityCmsClient implements CmsClientInterface
 
         if ($pageModules) {
             foreach ($pageModules as $key => $module) {
-                $module['type'] = $module['_type'];
+                $module['type'] =  $this->slugify($module['_type']);
                 $modulesArray[] = $module;
             }
         }
 
-        $page['modules'] = $this->slugify($module['_type']);;
+        $page['modules'] = $modulesArray;
         return $page;
     }
 
