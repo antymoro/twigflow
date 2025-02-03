@@ -3,6 +3,7 @@
 namespace App\Modules\Manager;
 
 use GuzzleHttp\Promise\Utils;
+use GuzzleHttp\Promise\Create;
 use App\Modules\Manager\ModuleProcessorInterface;
 use App\Utils\ApiFetcher;
 use App\Services\CacheService;
@@ -29,18 +30,33 @@ class ModuleProcessorManager
                 $this->loadProcessor($type);
             }
 
-            if ($type && isset($this->processors[$type])) {
+            if ($type && isset($this->processors[$type]) && method_exists($this->processors[$type], 'fetchData')) {
                 $processor = $this->processors[$type];
+                // fetchData returns an array containing one or more Guzzle promises
                 $dataArray = $processor->fetchData($module, $this->apiFetcher);
 
-                $promises[$type] = Utils::all($dataArray)->then(function ($resolvedArray) {
-                    foreach ($resolvedArray as $key => $response) {
-                        if ($response instanceof \Psr\Http\Message\ResponseInterface) {
-                            $resolvedArray[$key] = json_decode($response->getBody()->getContents(), true);
-                        }
+                // We'll convert each entry in $dataArray into a cached promise
+                $cachedArray = [];
+                foreach ($dataArray as $key => $guzzlePromise) {
+                    $cacheKey = 'module_'.$type.'_'.$key.'_'.md5(json_encode($module));
+                    $existingCachedValue = $this->cacheService->get($cacheKey, fn() => false);
+
+                    if ($existingCachedValue !== false) {
+                        // Already cached: create a resolved promise
+                        $cachedArray[$key] = Create::promiseFor($existingCachedValue);
+                    } else {
+                        // Not in cache: use Guzzle promise, then store result
+                        $cachedArray[$key] = $guzzlePromise->then(function ($response) use ($cacheKey) {
+                            $data = json_decode($response->getBody()->getContents(), true);
+                            // Save to cache
+                            $this->cacheService->get($cacheKey, fn() => $data);
+                            return $data;
+                        });
                     }
-                    return $resolvedArray;
-                });
+                }
+
+                // Wrap the final array of (cached) promises in Utils::all
+                $promises[$type] = Utils::all($cachedArray);
             }
         }
 
@@ -51,8 +67,8 @@ class ModuleProcessorManager
         foreach ($modules as &$module) {
             $type = $module['type'] ?? null;
             if ($type && isset($this->processors[$type])) {
-                // $results[$type]['value'] is the resolved array from Utils::all
-                $module = $this->processors[$type]->process($module, $results[$type]['value'] ?? []);
+                $resolvedData = $results[$type]['value'] ?? [];
+                $module = $this->processors[$type]->process($module, $resolvedData);
             }
         }
 
