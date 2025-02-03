@@ -37,7 +37,7 @@ return [
     // Register Twig Loader
     \Twig\Loader\LoaderInterface::class => function () {
         // FilesystemLoader is used to load Twig templates from the specified directory
-        return new FilesystemLoader(__DIR__ . '/../../../../resources/templates');
+        return new FilesystemLoader(__DIR__ . '/../../../../views');
     },
 
     // Register Twig

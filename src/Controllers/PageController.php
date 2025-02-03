@@ -30,7 +30,7 @@ class PageController
         $this->cmsClient = $cmsClient;
         $this->moduleProcessorManager = $moduleProcessorManager;
         $this->templatePath = $templatePath;
-        $this->userTemplatePath = getcwd() . '/resources/templates/';
+        $this->userTemplatePath = getcwd() . '/views/';
     }
 
     /**
