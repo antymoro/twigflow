@@ -12,7 +12,7 @@ class CacheService
 
     public function __construct()
     {
-        $cacheDirectory = __DIR__ . '/../../cache';
+        $cacheDirectory = BASE_PATH . '/cache';
 
         if (!file_exists($cacheDirectory)) {
             mkdir($cacheDirectory, 0777, true);

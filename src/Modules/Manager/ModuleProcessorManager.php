@@ -30,7 +30,7 @@ class ModuleProcessorManager
                 $this->loadProcessor($type);
             }
 
-            if ($type && isset($this->processors[$type]) && method_exists($this->processors[$type], 'fetchData')) {
+            if ($type && isset($this->processors[$type]) ) {
                 $processor = $this->processors[$type];
                 // fetchData returns an array containing one or more Guzzle promises
                 $dataArray = $processor->fetchData($module, $this->apiFetcher);
