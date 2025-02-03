@@ -20,28 +20,18 @@
     "symfony/cache": "^7.2",
     "symfony/console": "^5.0",
     "symfony/filesystem": "^5.0",
-    "monolog/monolog": "^3.8"
+    "monolog/monolog": "^3.8",
+    "guzzlehttp/promises": "^2.0"
   },
   "autoload": {
     "psr-4": {
       "App\\": "src/"
-    },
-    "exclude-from-classmap": [
-      "/resources/"
-    ]
+    }
   },
   "extra": {
     "branch-alias": {
       "dev-main": "1.0.x-dev"
     }
-  },
-  "scripts": {
-    "post-install-cmd": [
-      "App\\Console\\Commands::publishResources"
-    ],
-    "post-update-cmd": [
-      "App\\Console\\Commands::publishResources"
-    ]
   },
   "config": {
     "optimize-autoloader": true

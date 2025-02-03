@@ -4,6 +4,7 @@ namespace App\Utils;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Promise\PromiseInterface;
 use App\Services\CacheService;
 
 class ApiFetcher
@@ -23,7 +24,7 @@ class ApiFetcher
 
         $this->client = new Client([
             'base_uri' => rtrim($baseUri, '/'),
-            'timeout'  => 10.0,
+            'timeout'  => 5.0,
             'headers'  => $headers,
         ]);
         $this->cache = new CacheService();
@@ -44,6 +45,14 @@ class ApiFetcher
                 return null;
             }
         });
+    }
+
+    public function asyncFetchFromApi(string $url, array $options = []): PromiseInterface
+    {
+        if (isset($options['query'])) {
+            $url .= '?' . http_build_query($options['query']);
+        }
+        return $this->client->getAsync($url);
     }
 
     private function generateCacheKey(string $url): string
