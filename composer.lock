@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "04b6822264f5d209eb5b1f55b48de368",
+    "content-hash": "9d7e0aede9d71aa14489f2ae5522a9de",
     "packages": [
         {
             "name": "fig/http-message-util",
@@ -1334,6 +1334,52 @@
                 "source": "https://github.com/ralouphie/getallheaders/tree/develop"
             },
             "time": "2019-03-08T08:55:37+00:00"
+        },
+        {
+            "name": "sanity/sanity-php",
+            "version": "v1.5.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/sanity-io/sanity-php.git",
+                "reference": "e5a7b8e199acf3666cb7f42cafc0d18417ee2efd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/sanity-io/sanity-php/zipball/e5a7b8e199acf3666cb7f42cafc0d18417ee2efd",
+                "reference": "e5a7b8e199acf3666cb7f42cafc0d18417ee2efd",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^6.2|^7.0",
+                "php": ">=5.6"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^5.7",
+                "squizlabs/php_codesniffer": "^2.8"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Sanity\\": "lib/",
+                    "SanityTest\\": "test/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Sanity.io",
+                    "email": "hello@sanity.io"
+                }
+            ],
+            "description": "PHP library for the Sanity API",
+            "support": {
+                "issues": "https://github.com/sanity-io/sanity-php/issues",
+                "source": "https://github.com/sanity-io/sanity-php/tree/v1.5.2"
+            },
+            "time": "2024-01-27T19:49:08+00:00"
         },
         {
             "name": "slim/psr7",
