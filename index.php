@@ -1,5 +1,7 @@
 <?php
 
+use function DI\value;
+
 define('BASE_PATH', __DIR__);
 define('TWIGFLOW_PATH', BASE_PATH . '/vendor/antymoro/twigflow');
 
@@ -26,7 +28,9 @@ $dotenv->load();
 
 // Determine environment (default to 'production' if not set)
 $environment = $_ENV['APP_ENV'] ?? 'production';
-$displayErrorDetails = $environment === 'development';
+define('APP_ENV', $environment);
+$displayErrorDetails = APP_ENV === 'development';
+
 $logErrors = true;
 $logErrorDetails = true;
 

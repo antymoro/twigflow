@@ -25,6 +25,12 @@ class CacheService
 
     public function get(string $key, callable $callback, ?int $expiresAfter = null)
     {
+        // Bypass caching if we are not in production
+        if (APP_ENV !== 'production') {
+            return $callback();
+        }
+
+
         $expiresAfter = $expiresAfter ?? $this->defaultExpireTime;
 
         return $this->cache->get($key, function (ItemInterface $item) use ($callback, $expiresAfter) {
