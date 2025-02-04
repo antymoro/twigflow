@@ -21,7 +21,8 @@
     "symfony/console": "^5.0",
     "symfony/filesystem": "^5.0",
     "monolog/monolog": "^3.8",
-    "guzzlehttp/promises": "^2.0"
+    "guzzlehttp/promises": "^2.0",
+    "sanity/sanity-php": "^1.5"
   },
   "autoload": {
     "psr-4": {
@@ -35,8 +36,5 @@
   },
   "config": {
     "optimize-autoloader": true
-  },
-  "bin": [
-    "src/cli"
-  ]
+  }
 }

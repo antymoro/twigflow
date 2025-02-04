@@ -3,6 +3,7 @@
 namespace App\CmsClients;
 
 use App\Utils\ApiFetcher;
+use Sanity\BlockContent;
 
 class SanityCmsClient implements CmsClientInterface
 {
@@ -17,49 +18,76 @@ class SanityCmsClient implements CmsClientInterface
 
     public function getPages(): array
     {
-        $url = $this->apiUrl . '/data/query/production?query=*[_type == "page"]';
-        $response = $this->apiFetcher->fetchFromApi($url);
+        $response = $this->fetchQuery('*[_type == "page"]');
         return $response['result'] ?? [];
     }
 
     public function getPage(string $slug, ?string $language = null): ?array
     {
         $query = '*[_type == "page" && slug.current == "' . $slug . '"][0]';
-        $url = $this->apiUrl . '/data/query/production?query=' . urlencode($query);
-        $response = $this->apiFetcher->fetchFromApi($url);
-        return $this->formatPage($response);
+        $response = $this->fetchQuery($query);
+        return $this->formatPage($response, $language);
     }
 
     public function getScaffold(string $global): ?array
     {
         $query = '*[_type == "' . $global . '"][0]';
-        $url = $this->apiUrl . '/data/query/production?query=' . urlencode($query);
-        $response = $this->apiFetcher->fetchFromApi($url);
+        $response = $this->fetchQuery($query);
         return $response['result'] ?? null;
     }
 
     public function getCollectionItem(string $collection, string $slug, ?string $language = null): ?array
     {
         $query = '*[_type == "' . $collection . '" && slug.current == "' . $slug . '"][0]';
-        $url = $this->apiUrl . '/data/query/production?query=' . urlencode($query);
-        $response = $this->apiFetcher->fetchFromApi($url);
-        return $response['result'] ?? null;
+        $response = $this->fetchQuery($query);
+        return $this->formatPage($response, $language);
     }
 
-    public function formatPage($page)
+    /**
+     * Helper method to build the URL with query and fetch the API response.
+     */
+    private function fetchQuery(string $query): ?array
+    {
+        $url = $this->apiUrl . '/data/query/production?query=' . urlencode($query);
+        return $this->apiFetcher->fetchFromApi($url);
+    }
+
+    /**
+     * Formats the API response page.
+     */
+    public function formatPage($page, ?string $language = null): ?array
     {
         if (empty($page['result'])) {
             return null;
         }
 
-        $pageModules = $page['result']['pageBuilder'] ?? [];
+        $pageModules = $page['result']['modules'] ?? [];
+        
 
-        $modulesArray = [];
+        $modulesArray = array_map(function ($module) {
+            $module['type'] = slugify($module['_type'] ?? '');
+            return $module;
+        }, $pageModules);
 
-        if ($pageModules) {
-            foreach ($pageModules as $key => $module) {
-                $module['type'] =  $this->slugify($module['_type']);
-                $modulesArray[] = $module;
+        if ($language) {
+            $modulesArray = $this->filterModulesByLanguage($modulesArray, $language);
+        }
+
+        // Process modules that require HTML conversion
+        foreach ($modulesArray as $key => $module) {
+            if ($module['type'] === 'localeblockcontent') {
+                $html = '';
+
+                if (!empty($module['content']) && is_array($module['content'])) {
+                    foreach ($module['content'] as $content) {
+                        if (is_array($content) && isset($content['_type']) && $content['_type'] === 'block') {
+                            $html .= BlockContent::toHtml($content);
+                        }
+                    }
+                }
+
+                $modulesArray[$key]['html'] = $html;
+                $modulesArray[$key]['type'] = 'text';
             }
         }
 
@@ -67,30 +95,19 @@ class SanityCmsClient implements CmsClientInterface
         return $page;
     }
 
-    private function slugify(string $text): string
+    /**
+     * Filters modules by language while preserving the module type.
+     */
+    private function filterModulesByLanguage(array $modules, string $language): array
     {
-        // Replace non-letter or digits by _
-        $text = preg_replace('~[^\pL\d]+~u', '_', $text);
-
-        // Transliterate
-        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
-
-        // Remove unwanted characters
-        $text = preg_replace('~[^_\w]+~', '', $text);
-
-        // Trim
-        $text = trim($text, '_');
-
-        // Remove duplicate _
-        $text = preg_replace('~_+~', '_', $text);
-
-        // Lowercase
-        $text = strtolower($text);
-
-        if (empty($text)) {
-            return 'n_a';
-        }
-
-        return $text;
+        return array_map(function ($module) use ($language) {
+            if (isset($module[$language]) && is_array($module[$language])) {
+                $type = $module['type'] ?? '';
+                $module = $module[$language];
+                $module['type'] = $type;
+            }
+            return $module;
+        }, $modules);
     }
+
 }

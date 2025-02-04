@@ -14,7 +14,7 @@ return function (App $app) {
     $app->add(new LanguageMiddleware($supportedLanguages, $defaultLanguage));
 
     // Load routing configuration from JSON file
-    $routesConfig = json_decode(file_get_contents(__DIR__ . '/../config/routes.json'), true);
+    $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
 
     // Define a dynamic route for the homepage
     $app->get('/', \App\Controllers\PageController::class . ':showHomepage')
@@ -29,7 +29,8 @@ return function (App $app) {
         ->setName('page.show');
 
     // Define routes for collections
-    foreach ($routesConfig['collections'] as $collection => $pattern) {
+    foreach ($routesConfig as $pattern => $config) {
+        $collection = $config['collection'];
         $app->get($pattern, \App\Controllers\PageController::class . ':showCollectionItem')
             ->setName('page.showCollectionItem')
             ->add(function ($request, $handler) use ($collection) {
