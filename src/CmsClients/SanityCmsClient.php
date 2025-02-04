@@ -78,15 +78,13 @@ class SanityCmsClient implements CmsClientInterface
             if ($module['type'] === 'localeblockcontent') {
                 $html = '';
 
-                if (!empty($module['content']) && is_array($module['content'])) {
-                    foreach ($module['content'] as $content) {
-                        if (is_array($content) && isset($content['_type']) && $content['_type'] === 'block') {
-                            $html .= BlockContent::toHtml($content);
-                        }
+                foreach ($module as $content) {
+                    if (is_array($content) && isset($content['_type']) && $content['_type'] === 'block') {
+                        $html .= BlockContent::toHtml($content);
                     }
                 }
 
-                $modulesArray[$key]['html'] = $html;
+                $modulesArray[$key]['parsed_html'] = $html;
                 $modulesArray[$key]['type'] = 'text';
             }
         }

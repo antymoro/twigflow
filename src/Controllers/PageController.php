@@ -52,7 +52,7 @@ class PageController
             return $this->renderError($response, 404, 'Page not found');
         }
 
-        return $this->renderPage($response, $page);
+        return $this->renderPage($request, $response, $page);
     }
 
     /**
@@ -88,19 +88,27 @@ class PageController
         $module = array_merge($content, ['type' => $collection]);
         $content['modules'][] = $module;
 
-        return $this->renderPage($response, $content);
+        return $this->renderPage($request, $response, $content);
     }
 
     /**
      * Helper method to render data in a 'page.twig' template.
      */
-    private function renderPage(Response $response, array $data): Response
+    private function renderPage(Request $request, Response $response, array $data): Response
     {
 
         if (isset($data['modules']) && is_array($data['modules'])) {
             $data['modules'] = $this->moduleProcessorManager->processModules($data['modules']);
         }
-        
+
+        // Check if 'json' parameter is set to true
+        $queryParams = $request->getQueryParams();
+        if (isset($queryParams['json']) && $queryParams['json'] === 'true') {
+            $payload = json_encode($data['modules'], JSON_PRETTY_PRINT);
+            $response->getBody()->write($payload);
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
         $template = 'page.twig';
         if (file_exists($this->userTemplatePath . $template)) {
             $template = $template;
