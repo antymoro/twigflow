@@ -1,6 +1,31 @@
 RewriteEngine On
+Options -Indexes
 
-# Redirect all requests to index.php
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# Allow access to existing files and directories, and specific file types
+RewriteCond %{REQUEST_FILENAME} -s [OR]
+RewriteCond %{REQUEST_FILENAME} -l [OR]
+RewriteCond %{REQUEST_FILENAME} -d [OR]
+RewriteCond %{REQUEST_FILENAME} \.(gif|jpg|png|jpeg|css|js|vtt)$ [NC]
+RewriteRule ^.*$ - [NC,L]
+
+# Redirect all other requests to index.php and preserve query strings
 RewriteRule ^ index.php [QSA,L]
+
+# Security: Deny access to sensitive files and directories
+RedirectMatch 404 /\.git
+RedirectMatch 404 /\.gitignore
+RedirectMatch 404 /Dockerfile
+RedirectMatch 404 /gulp-config.json
+RedirectMatch 404 /gulpfile.js
+RedirectMatch 404 /package.json
+RedirectMatch 404 /package-lock.json
+RedirectMatch 404 /tsconfig.json
+RedirectMatch 404 /README.md
+RedirectMatch 404 /\.github
+RedirectMatch 404 /\.env
+
+# AddHandler for PHP files
+AddHandler application/x-httpd-php .html .htm
+
+# AddType for VTT files
+AddType text/vtt .vtt

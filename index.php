@@ -1,10 +1,8 @@
 <?php
 
-use function DI\value;
-
+// Define the base paths for the application
 define('BASE_PATH', __DIR__);
 define('TWIGFLOW_PATH', BASE_PATH . '/vendor/antymoro/twigflow');
-
 
 // Display errors for development
 ini_set('display_errors', 1);
@@ -14,10 +12,8 @@ error_reporting(E_ALL);
 use DI\ContainerBuilder;
 use Slim\Factory\AppFactory;
 use Slim\Views\TwigMiddleware;
-use Slim\Middleware\ErrorMiddleware;
 use Dotenv\Dotenv;
 use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
 
 require BASE_PATH . '/vendor/autoload.php';
 require TWIGFLOW_PATH . '/src/Utils/helpers.php';
@@ -31,6 +27,7 @@ $environment = $_ENV['APP_ENV'] ?? 'production';
 define('APP_ENV', $environment);
 $displayErrorDetails = APP_ENV === 'development';
 
+// Set up error logging
 $logErrors = true;
 $logErrorDetails = true;
 
