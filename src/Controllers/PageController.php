@@ -85,10 +85,6 @@ class PageController
             return $this->renderError($response, 404, 'Content not found');
         }
 
-        // Example logic for adding the collection as a module
-        $module = array_merge($content, ['type' => $collection]);
-        $content['modules'][] = $module;
-
         return $this->renderPage($request, $response, $content);
     }
 

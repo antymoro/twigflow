@@ -62,50 +62,115 @@ class SanityCmsClient implements CmsClientInterface
         }
 
         $pageModules = $page['result']['modules'] ?? [];
-        
 
         $modulesArray = array_map(function ($module) {
-            $module['type'] = slugify($module['_type'] ?? '');
+            $module['type'] = $this->slugify($module['_type'] ?? '');
             return $module;
         }, $pageModules);
 
-        if ($language) {
-            $modulesArray = $this->filterModulesByLanguage($modulesArray, $language);
-        }
-
-        // Process modules that require HTML conversion
-        foreach ($modulesArray as $key => $module) {
-            if ($module['type'] === 'localeblockcontent') {
-                $html = '';
-
-                foreach ($module as $content) {
-                    if (is_array($content) && isset($content['_type']) && $content['_type'] === 'block') {
-                        $html .= BlockContent::toHtml($content);
-                    }
-                }
-
-                $modulesArray[$key]['parsed_html'] = $html;
-                $modulesArray[$key]['type'] = 'text';
-            }
-        }
+        // Process modules for localization and HTML conversion
+        $modulesArray = $this->processModulesRecursively($modulesArray, $language);
 
         $page['modules'] = $modulesArray;
         return $page;
     }
 
     /**
-     * Filters modules by language while preserving the module type.
+     * Recursively processes modules for localization and HTML block conversion.
+     *
+     * @param array $modules
+     * @param string|null $language
+     * @return array
      */
-    private function filterModulesByLanguage(array $modules, string $language): array
+    private function processModulesRecursively(array $modules, ?string $language): array
     {
-        return array_map(function ($module) use ($language) {
-            if (isset($module[$language]) && is_array($module[$language])) {
-                $type = $module['type'] ?? '';
-                $module = $module[$language];
-                $module['type'] = $type;
+        foreach ($modules as $key => $module) {
+            if (is_array($module)) {
+                if (isset($module['type']) && $module['type'] === 'localeblockcontent') {
+                    $modules[$key] = $this->processHtmlBlockModule($module);
+                } else {
+                    $modules[$key] = $this->processModulesRecursively($module, $language);
+                }
+
+                if ($language) {
+                    $modules[$key] = $this->localizeModule($modules[$key], $language);
+                }
             }
-            return $module;
-        }, $modules);
+        }
+        return $modules;
     }
 
+    /**
+     * Processes a module that contains (possibly nested) HTML block content.
+     *
+     * @param array $module
+     * @return array
+     */
+    private function processHtmlBlockModule(array $module): array
+    {
+        $html = $this->convertBlocksToHtml($module);
+        $module = ['text' => $html]; // Only keep the text field with parsed HTML
+        return $module;
+    }
+
+    /**
+     * Recursively searches data for nested HTML blocks and processes them.
+     *
+     * @param array $data
+     * @return string
+     */
+    private function convertBlocksToHtml(array $data): string
+    {
+        $html = '';
+
+        foreach ($data as $item) {
+            if (is_array($item)) {
+                if (isset($item['_type']) && $item['_type'] === 'block') {
+                    $html .= BlockContent::toHtml($item);
+                } else {
+                    $html .= $this->convertBlocksToHtml($item);
+                }
+            }
+        }
+
+        return $html;
+    }
+
+    /**
+     * Recursively localizes a module.
+     *
+     * @param array $module
+     * @param string $language
+     * @return array
+     */
+    private function localizeModule(array $module, string $language): array
+    {
+        foreach ($module as $key => $value) {
+            if (is_array($value) && isset($value['_type']) && $value['_type'] === 'localeString') {
+                if (isset($value[$language])) {
+                    $module[$key] = $value[$language];
+                }
+            } elseif (is_array($value)) {
+                $module[$key] = $this->localizeModule($value, $language);
+            }
+        }
+        return $module;
+    }
+
+    /**
+     * Converts text into a URL-friendly slug using underscores.
+     */
+    private function slugify(string $text): string
+    {
+        // Replace non-letter or digit characters with underscores
+        $text = preg_replace('~[^\pL\d]+~u', '_', $text);
+        // Transliterate to ASCII
+        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+        // Remove unwanted characters
+        $text = preg_replace('~[^_\w]+~', '', $text);
+        // Trim and remove duplicate underscores
+        $text = preg_replace('~_+~', '_', trim($text, '_'));
+        // Lowercase the result
+        return $text !== '' ? strtolower($text) : 'n_a';
+    }
 }
