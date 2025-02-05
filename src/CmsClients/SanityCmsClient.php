@@ -9,6 +9,7 @@ class SanityCmsClient implements CmsClientInterface
 {
     private string $apiUrl;
     private ApiFetcher $apiFetcher;
+    private array $referenceIds = [];
 
     public function __construct(string $apiUrl)
     {
@@ -62,21 +63,22 @@ class SanityCmsClient implements CmsClientInterface
         }
         $pageModules = $page['result']['modules'] ?? [];
 
-        // Process the data recursively for both HTML conversion and localization
-        $modulesArray = $this->processDataRecursively($pageModules, $language);
+        // // Process the data recursively for both HTML conversion and localization
+        // $modulesArray = $this->processData($pageModules, $language);
 
         // Set a "type" key based on _type for consistency
         $modulesArray = array_map(function ($module) {
             $module['type'] = $this->slugify($module['_type'] ?? '');
             return $module;
-        }, $modulesArray);
+        }, $pageModules);
 
         $page['modules'] = $modulesArray;
+
         return $page;
     }
 
     /**
-     * Public method to process any data set for localization and HTML block conversion.
+     * Public method to process any data set for localization, HTML block conversion, and reference resolution.
      *
      * @param array $data
      * @param string|null $language
@@ -84,14 +86,21 @@ class SanityCmsClient implements CmsClientInterface
      */
     public function processData(array $data, ?string $language = null): array
     {
-        return $this->processDataRecursively($data, $language);
+        // First process localization, HTML conversion, and collect references
+        $processed = $this->processDataRecursively($data, $language);
+
+        // Fetch and cache all references
+        $references = $this->fetchReferences();
+
+        // Substitute references in the processed data
+        return $this->substituteReferences($processed, $references);
     }
 
     /**
      * Recursively processes an arbitrary data structure.
-     * - If an array has key "type" equal to "localeblockcontent", 
-     *   it will be replaced by its parsed HTML in a "text" field.
      * - If an array has _type "localeString", it will be localized.
+     * - If an array has _type "localeBlockContent", it converts nested blocks to HTML.
+     * - If an array has _type "reference", it collects the reference ID.
      * - Otherwise, it recurses through all keys.
      *
      * @param mixed $data
@@ -101,25 +110,77 @@ class SanityCmsClient implements CmsClientInterface
     private function processDataRecursively($data, ?string $language)
     {
         if (is_array($data)) {
-            // Check if this array represents a localized string
-            if (isset($data['_type']) && $data['_type'] === 'localeString') {
-                if ($language && isset($data[$language])) {
-                    return $data[$language];
-                }
-                return $data;
+            switch ($data['_type'] ?? null) {
+                case 'localeString':
+                    if ($language && isset($data[$language])) {
+                        return $data[$language];
+                    }
+                    return $data;
+                case 'localeBlockContent':
+                    return $this->processHtmlBlockModule($data);
+                case 'reference':
+                    if (isset($data['_ref'])) {
+                        $this->referenceIds[] = $data['_ref'];
+                    }
+                    return $data;
+                default:
+                    $result = [];
+                    foreach ($data as $key => $value) {
+                        $result[$key] = $this->processDataRecursively($value, $language);
+                    }
+                    return $result;
             }
-            // Check if this array is a special HTML block container
-            if (isset($data['_type']) && $data['_type'] === 'localeBlockContent') {
-                return $this->processHtmlBlockModule($data);
-            }
-            // Otherwise, recursively process each element
-            $result = [];
-            foreach ($data as $key => $value) {
-                $result[$key] = $this->processDataRecursively($value, $language);
-            }
-            return $result;
         }
-        return $data; // For scalar values, just return as is.
+        return $data; // Return scalar values unchanged.
+    }
+
+    /**
+     * Fetches all references collected during processing.
+     *
+     * @return array
+     */
+    private function fetchReferences(): array
+    {
+        if (empty($this->referenceIds)) {
+            return [];
+        }
+
+        $refIds = array_values(array_unique($this->referenceIds));
+        $refIdsString = '["' . implode('","', $refIds) . '"]';
+
+        // Build GROQ query specifying the fields you need (e.g. _id and slug)
+        $query = '*[_id in ' . $refIdsString . ']{ _id, slug, _type }';
+        // Build the URL with query and parameters.
+        $queryUrl = $this->apiUrl . '/data/query/production?query=' . urlencode($query);
+
+        // Fetch the result.
+        $response = $this->apiFetcher->fetchFromApi($queryUrl);
+        $result = $response['result'] ?? [];
+        $mapping = [];
+        foreach ($result as $doc) {
+            $mapping[$doc['_id']] = $doc;
+        }
+        return $mapping;
+    }
+
+    /**
+     * Recursively substitutes reference arrays in $data with their fetched documents.
+     *
+     * @param mixed $data
+     * @param array $mapping
+     * @return mixed
+     */
+    private function substituteReferences($data, array $mapping)
+    {
+        if (is_array($data)) {
+            if (isset($data['_type']) && $data['_type'] === 'reference' && isset($data['_ref'])) {
+                return $mapping[$data['_ref']] ?? $data;
+            }
+            foreach ($data as $key => $value) {
+                $data[$key] = $this->substituteReferences($value, $mapping);
+            }
+        }
+        return $data;
     }
 
     /**
