@@ -174,7 +174,16 @@ class SanityCmsClient implements CmsClientInterface
     {
         if (is_array($data)) {
             if (isset($data['_type']) && $data['_type'] === 'reference' && isset($data['_ref'])) {
-                return $mapping[$data['_ref']] ?? $data;
+                $resolvedData = $mapping[$data['_ref']] ?? $data;
+                if (isset($resolvedData['_type']) && isset($resolvedData['slug']['current'])) {
+                    $slug = $resolvedData['slug']['current'];
+                    if ($resolvedData['_type'] === 'page') {
+                        $resolvedData = '/' . $slug;
+                    } else {
+                        $resolvedData = '/' . $resolvedData['_type'] . '/' . $slug;
+                    }
+                }
+                return $resolvedData;
             }
             foreach ($data as $key => $value) {
                 $data[$key] = $this->substituteReferences($value, $mapping);
