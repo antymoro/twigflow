@@ -91,7 +91,8 @@ return [
     ModuleProcessorManager::class => function ($c) {
         $apiFetcher = $c->get(ApiFetcher::class);
         $cacheService = $c->get(CacheService::class);
-        return new ModuleProcessorManager($apiFetcher, $cacheService);
+        $cmsClient = $c->get(CmsClientInterface::class);
+        return new ModuleProcessorManager($apiFetcher, $cacheService, $cmsClient);
     },
 
     // Register PageController

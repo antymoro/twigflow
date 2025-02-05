@@ -7,20 +7,23 @@ use GuzzleHttp\Promise\Create;
 use App\Modules\Manager\ModuleProcessorInterface;
 use App\Utils\ApiFetcher;
 use App\Services\CacheService;
+use App\CmsClients\CmsClientInterface;
 
 class ModuleProcessorManager
 {
     private array $processors = [];
     private ApiFetcher $apiFetcher;
     private CacheService $cacheService;
+    private CmsClientInterface $cmsClient;
 
-    public function __construct(ApiFetcher $apiFetcher, CacheService $cacheService)
+    public function __construct(ApiFetcher $apiFetcher, CacheService $cacheService, CmsClientInterface $cmsClient)
     {
         $this->apiFetcher = $apiFetcher;
         $this->cacheService = $cacheService;
+        $this->cmsClient = $cmsClient;
     }
 
-    public function processModules(array $modules): array
+    public function processModules(array $modules, $language): array
     {
         $promises = [];
 
@@ -68,6 +71,11 @@ class ModuleProcessorManager
             $type = $module['type'] ?? null;
             if ($type && isset($this->processors[$type])) {
                 $resolvedData = $results[$type]['value'] ?? [];
+
+                // Process the resolved data with the CMS client
+                $resolvedData = $this->cmsClient->processData($resolvedData, $language);
+
+                // Process the module with the resolved data
                 $module = $this->processors[$type]->process($module, $resolvedData);
             }
         }

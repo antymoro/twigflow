@@ -60,48 +60,71 @@ class SanityCmsClient implements CmsClientInterface
         if (empty($page['result'])) {
             return null;
         }
-
         $pageModules = $page['result']['modules'] ?? [];
 
+        // Process the data recursively for both HTML conversion and localization
+        $modulesArray = $this->processDataRecursively($pageModules, $language);
+
+        // Set a "type" key based on _type for consistency
         $modulesArray = array_map(function ($module) {
             $module['type'] = $this->slugify($module['_type'] ?? '');
             return $module;
-        }, $pageModules);
-
-        // Process modules for localization and HTML conversion
-        $modulesArray = $this->processModulesRecursively($modulesArray, $language);
+        }, $modulesArray);
 
         $page['modules'] = $modulesArray;
         return $page;
     }
 
     /**
-     * Recursively processes modules for localization and HTML block conversion.
+     * Public method to process any data set for localization and HTML block conversion.
      *
-     * @param array $modules
+     * @param array $data
      * @param string|null $language
      * @return array
      */
-    private function processModulesRecursively(array $modules, ?string $language): array
+    public function processData(array $data, ?string $language = null): array
     {
-        foreach ($modules as $key => $module) {
-            if (is_array($module)) {
-                if (isset($module['type']) && $module['type'] === 'localeblockcontent') {
-                    $modules[$key] = $this->processHtmlBlockModule($module);
-                } else {
-                    $modules[$key] = $this->processModulesRecursively($module, $language);
-                }
-
-                if ($language) {
-                    $modules[$key] = $this->localizeModule($modules[$key], $language);
-                }
-            }
-        }
-        return $modules;
+        return $this->processDataRecursively($data, $language);
     }
 
     /**
-     * Processes a module that contains (possibly nested) HTML block content.
+     * Recursively processes an arbitrary data structure.
+     * - If an array has key "type" equal to "localeblockcontent", 
+     *   it will be replaced by its parsed HTML in a "text" field.
+     * - If an array has _type "localeString", it will be localized.
+     * - Otherwise, it recurses through all keys.
+     *
+     * @param mixed $data
+     * @param string|null $language
+     * @return mixed
+     */
+    private function processDataRecursively($data, ?string $language)
+    {
+        if (is_array($data)) {
+            // Check if this array represents a localized string
+            if (isset($data['_type']) && $data['_type'] === 'localeString') {
+                if ($language && isset($data[$language])) {
+                    return $data[$language];
+                }
+                return $data;
+            }
+            // Check if this array is a special HTML block container
+            if (isset($data['_type']) && $data['_type'] === 'localeBlockContent') {
+                return $this->processHtmlBlockModule($data);
+            }
+            // Otherwise, recursively process each element
+            $result = [];
+            foreach ($data as $key => $value) {
+                $result[$key] = $this->processDataRecursively($value, $language);
+            }
+            return $result;
+        }
+        return $data; // For scalar values, just return as is.
+    }
+
+    /**
+     * Processes an array assumed to be a HTML block container.
+     * Converts all nested blocks to HTML and returns an array with only "text" and "type" keys.
      *
      * @param array $module
      * @return array
@@ -109,12 +132,11 @@ class SanityCmsClient implements CmsClientInterface
     private function processHtmlBlockModule(array $module): array
     {
         $html = $this->convertBlocksToHtml($module);
-        $module = ['text' => $html, 'type' => 'text']; // simplify the module
-        return $module;
+        return ['text' => $html, 'type' => 'text', '_type' => 'text'];
     }
 
     /**
-     * Recursively searches data for nested HTML blocks and processes them.
+     * Recursively converts nested blocks to HTML.
      *
      * @param array $data
      * @return string
@@ -122,7 +144,6 @@ class SanityCmsClient implements CmsClientInterface
     private function convertBlocksToHtml(array $data): string
     {
         $html = '';
-
         foreach ($data as $item) {
             if (is_array($item)) {
                 if (isset($item['_type']) && $item['_type'] === 'block') {
@@ -132,29 +153,7 @@ class SanityCmsClient implements CmsClientInterface
                 }
             }
         }
-
         return $html;
-    }
-
-    /**
-     * Recursively localizes a module.
-     *
-     * @param array $module
-     * @param string $language
-     * @return array
-     */
-    private function localizeModule(array $module, string $language): array
-    {
-        foreach ($module as $key => $value) {
-            if (is_array($value) && isset($value['_type']) && $value['_type'] === 'localeString') {
-                if (isset($value[$language])) {
-                    $module[$key] = $value[$language];
-                }
-            } elseif (is_array($value)) {
-                $module[$key] = $this->localizeModule($value, $language);
-            }
-        }
-        return $module;
     }
 
     /**

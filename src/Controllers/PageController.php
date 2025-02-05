@@ -53,7 +53,7 @@ class PageController
             return $this->renderError($response, 404, 'Page not found');
         }
 
-        return $this->renderPage($request, $response, $page);
+        return $this->renderPage($request, $response, $page, $language);
     }
 
     /**
@@ -85,17 +85,17 @@ class PageController
             return $this->renderError($response, 404, 'Content not found');
         }
 
-        return $this->renderPage($request, $response, $content);
+        return $this->renderPage($request, $response, $content, $language);
     }
 
     /**
      * Helper method to render data in a 'page.twig' template.
      */
-    private function renderPage(Request $request, Response $response, array $data): Response
+    private function renderPage(Request $request, Response $response, array $data, string $language): Response
     {
 
         if (isset($data['modules']) && is_array($data['modules'])) {
-            $data['modules'] = $this->moduleProcessorManager->processModules($data['modules']);
+            $data['modules'] = $this->moduleProcessorManager->processModules($data['modules'], $language);
         }
 
         // Check if 'json' parameter is set to true
