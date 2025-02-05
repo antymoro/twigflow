@@ -93,7 +93,7 @@ class SanityCmsClient implements CmsClientInterface
         $references = $this->fetchReferences();
 
         // Substitute references in the processed data
-        return $this->substituteReferences($processed, $references);
+        return $this->substituteReferences($processed, $references, $language);
     }
 
     /**
@@ -123,6 +123,7 @@ class SanityCmsClient implements CmsClientInterface
                         $this->referenceIds[] = $data['_ref'];
                     }
                     return $data;
+
                 default:
                     $result = [];
                     foreach ($data as $key => $value) {
@@ -168,25 +169,56 @@ class SanityCmsClient implements CmsClientInterface
      *
      * @param mixed $data
      * @param array $mapping
+     * @param string|null $language
      * @return mixed
      */
-    private function substituteReferences($data, array $mapping)
+    private function substituteReferences($data, array $mapping, ?string $language = null)
     {
+        $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
+
+        $collections = [];
+
+        foreach ($routesConfig as $route => $value) {
+            if (isset($value['collection'])) {
+                $type = $value['collection'];
+                $path = str_replace('/{slug}', '', $route);
+                $collections[$type] = ['path' => $path];
+            }
+        }
+
         if (is_array($data)) {
             if (isset($data['_type']) && $data['_type'] === 'reference' && isset($data['_ref'])) {
                 $resolvedData = $mapping[$data['_ref']] ?? $data;
                 if (isset($resolvedData['_type']) && isset($resolvedData['slug']['current'])) {
                     $slug = $resolvedData['slug']['current'];
+                    $urlPrefix = $language ? '/' . $language : '';
                     if ($resolvedData['_type'] === 'page') {
-                        $resolvedData = '/' . $slug;
+                        $resolvedData = $urlPrefix . '/' . $slug;
+                    } elseif (isset($collections[$resolvedData['_type']])) {
+                        $resolvedData = $urlPrefix . $collections[$resolvedData['_type']]['path'] . '/' . $slug;
                     } else {
-                        $resolvedData = '/' . $resolvedData['_type'] . '/' . $slug;
+                        $resolvedData = $urlPrefix . '/' . $resolvedData['_type'] . '/' . $slug;
                     }
                 }
                 return $resolvedData;
             }
-            foreach ($data as $key => $value) {
-                $data[$key] = $this->substituteReferences($value, $mapping);
+
+            if (isset($data['_type']) && $data['_type'] === 'sanity.imageAsset' && isset($data['_id'])) {
+                $filename = preg_replace('/^image-/', '', $data['_id']);
+                $filename = preg_replace('/-(jpg|png|webp)$/', '.$1', $filename);
+                // Construct URL
+                $data = 'https://cdn.sanity.io/images/isvajgup/production/' . $filename;
+            }
+
+            // Handle nested image references
+            if (isset($data['_type']) && $data['_type'] === 'image' && isset($data['asset']['_ref'])) {
+                $data['asset'] = $this->substituteReferences($data['asset'], $mapping, $language);
+            }
+
+            if (is_array($data)) {
+                foreach ($data as $key => $value) {
+                    $data[$key] = $this->substituteReferences($value, $mapping, $language);
+                }
             }
         }
         return $data;
