@@ -91,7 +91,7 @@ class PageController
     /**
      * Helper method to render data in a 'page.twig' template.
      */
-    private function renderPage(Request $request, Response $response, array $data, string $language): Response
+    private function renderPage(Request $request, Response $response, array $data, ?string $language): Response
     {
 
         if (isset($data['modules']) && is_array($data['modules'])) {
