@@ -109,7 +109,7 @@ class SanityCmsClient implements CmsClientInterface
     private function processHtmlBlockModule(array $module): array
     {
         $html = $this->convertBlocksToHtml($module);
-        $module = ['text' => $html]; // Only keep the text field with parsed HTML
+        $module = ['text' => $html, 'type' => 'text']; // simplify the module
         return $module;
     }
 
