@@ -9,6 +9,7 @@ class SanityCmsClient implements CmsClientInterface
 {
     private string $apiUrl;
     private ApiFetcher $apiFetcher;
+    private array $referenceIds = [];
 
     public function __construct(string $apiUrl)
     {
@@ -60,48 +61,140 @@ class SanityCmsClient implements CmsClientInterface
         if (empty($page['result'])) {
             return null;
         }
-
         $pageModules = $page['result']['modules'] ?? [];
 
+        // // Process the data recursively for both HTML conversion and localization
+        // $modulesArray = $this->processData($pageModules, $language);
+
+        // Set a "type" key based on _type for consistency
         $modulesArray = array_map(function ($module) {
             $module['type'] = $this->slugify($module['_type'] ?? '');
             return $module;
         }, $pageModules);
 
-        // Process modules for localization and HTML conversion
-        $modulesArray = $this->processModulesRecursively($modulesArray, $language);
-
         $page['modules'] = $modulesArray;
+
         return $page;
     }
 
     /**
-     * Recursively processes modules for localization and HTML block conversion.
+     * Public method to process any data set for localization, HTML block conversion, and reference resolution.
      *
-     * @param array $modules
+     * @param array $data
      * @param string|null $language
      * @return array
      */
-    private function processModulesRecursively(array $modules, ?string $language): array
+    public function processData(array $data, ?string $language = null): array
     {
-        foreach ($modules as $key => $module) {
-            if (is_array($module)) {
-                if (isset($module['type']) && $module['type'] === 'localeblockcontent') {
-                    $modules[$key] = $this->processHtmlBlockModule($module);
-                } else {
-                    $modules[$key] = $this->processModulesRecursively($module, $language);
-                }
+        // First process localization, HTML conversion, and collect references
+        $processed = $this->processDataRecursively($data, $language);
 
-                if ($language) {
-                    $modules[$key] = $this->localizeModule($modules[$key], $language);
-                }
-            }
-        }
-        return $modules;
+        // Fetch and cache all references
+        $references = $this->fetchReferences();
+
+        // Substitute references in the processed data
+        return $this->substituteReferences($processed, $references);
     }
 
     /**
-     * Processes a module that contains (possibly nested) HTML block content.
+     * Recursively processes an arbitrary data structure.
+     * - If an array has _type "localeString", it will be localized.
+     * - If an array has _type "localeBlockContent", it converts nested blocks to HTML.
+     * - If an array has _type "reference", it collects the reference ID.
+     * - Otherwise, it recurses through all keys.
+     *
+     * @param mixed $data
+     * @param string|null $language
+     * @return mixed
+     */
+    private function processDataRecursively($data, ?string $language)
+    {
+        if (is_array($data)) {
+            switch ($data['_type'] ?? null) {
+                case 'localeString':
+                    if ($language && isset($data[$language])) {
+                        return $data[$language];
+                    }
+                    return $data;
+                case 'localeBlockContent':
+                    return $this->processHtmlBlockModule($data);
+                case 'reference':
+                    if (isset($data['_ref'])) {
+                        $this->referenceIds[] = $data['_ref'];
+                    }
+                    return $data;
+                default:
+                    $result = [];
+                    foreach ($data as $key => $value) {
+                        $result[$key] = $this->processDataRecursively($value, $language);
+                    }
+                    return $result;
+            }
+        }
+        return $data; // Return scalar values unchanged.
+    }
+
+    /**
+     * Fetches all references collected during processing.
+     *
+     * @return array
+     */
+    private function fetchReferences(): array
+    {
+        if (empty($this->referenceIds)) {
+            return [];
+        }
+
+        $refIds = array_values(array_unique($this->referenceIds));
+        $refIdsString = '["' . implode('","', $refIds) . '"]';
+
+        // Build GROQ query specifying the fields you need (e.g. _id and slug)
+        $query = '*[_id in ' . $refIdsString . ']{ _id, slug, _type }';
+        // Build the URL with query and parameters.
+        $queryUrl = $this->apiUrl . '/data/query/production?query=' . urlencode($query);
+
+        // Fetch the result.
+        $response = $this->apiFetcher->fetchFromApi($queryUrl);
+        $result = $response['result'] ?? [];
+        $mapping = [];
+        foreach ($result as $doc) {
+            $mapping[$doc['_id']] = $doc;
+        }
+        return $mapping;
+    }
+
+    /**
+     * Recursively substitutes reference arrays in $data with their fetched documents.
+     *
+     * @param mixed $data
+     * @param array $mapping
+     * @return mixed
+     */
+    private function substituteReferences($data, array $mapping)
+    {
+        if (is_array($data)) {
+            if (isset($data['_type']) && $data['_type'] === 'reference' && isset($data['_ref'])) {
+                $resolvedData = $mapping[$data['_ref']] ?? $data;
+                if (isset($resolvedData['_type']) && isset($resolvedData['slug']['current'])) {
+                    $slug = $resolvedData['slug']['current'];
+                    if ($resolvedData['_type'] === 'page') {
+                        $resolvedData = '/' . $slug;
+                    } else {
+                        $resolvedData = '/' . $resolvedData['_type'] . '/' . $slug;
+                    }
+                }
+                return $resolvedData;
+            }
+            foreach ($data as $key => $value) {
+                $data[$key] = $this->substituteReferences($value, $mapping);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Processes an array assumed to be a HTML block container.
+     * Converts all nested blocks to HTML and returns an array with only "text" and "type" keys.
      *
      * @param array $module
      * @return array
@@ -109,12 +202,11 @@ class SanityCmsClient implements CmsClientInterface
     private function processHtmlBlockModule(array $module): array
     {
         $html = $this->convertBlocksToHtml($module);
-        $module = ['text' => $html, 'type' => 'text']; // simplify the module
-        return $module;
+        return ['text' => $html, 'type' => 'text', '_type' => 'text'];
     }
 
     /**
-     * Recursively searches data for nested HTML blocks and processes them.
+     * Recursively converts nested blocks to HTML.
      *
      * @param array $data
      * @return string
@@ -122,7 +214,6 @@ class SanityCmsClient implements CmsClientInterface
     private function convertBlocksToHtml(array $data): string
     {
         $html = '';
-
         foreach ($data as $item) {
             if (is_array($item)) {
                 if (isset($item['_type']) && $item['_type'] === 'block') {
@@ -132,29 +223,7 @@ class SanityCmsClient implements CmsClientInterface
                 }
             }
         }
-
         return $html;
-    }
-
-    /**
-     * Recursively localizes a module.
-     *
-     * @param array $module
-     * @param string $language
-     * @return array
-     */
-    private function localizeModule(array $module, string $language): array
-    {
-        foreach ($module as $key => $value) {
-            if (is_array($value) && isset($value['_type']) && $value['_type'] === 'localeString') {
-                if (isset($value[$language])) {
-                    $module[$key] = $value[$language];
-                }
-            } elseif (is_array($value)) {
-                $module[$key] = $this->localizeModule($value, $language);
-            }
-        }
-        return $module;
     }
 
     /**

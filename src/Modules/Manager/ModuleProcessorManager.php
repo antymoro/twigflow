@@ -7,22 +7,26 @@ use GuzzleHttp\Promise\Create;
 use App\Modules\Manager\ModuleProcessorInterface;
 use App\Utils\ApiFetcher;
 use App\Services\CacheService;
+use App\CmsClients\CmsClientInterface;
 
 class ModuleProcessorManager
 {
     private array $processors = [];
     private ApiFetcher $apiFetcher;
     private CacheService $cacheService;
+    private CmsClientInterface $cmsClient;
 
-    public function __construct(ApiFetcher $apiFetcher, CacheService $cacheService)
+    public function __construct(ApiFetcher $apiFetcher, CacheService $cacheService, CmsClientInterface $cmsClient)
     {
         $this->apiFetcher = $apiFetcher;
         $this->cacheService = $cacheService;
+        $this->cmsClient = $cmsClient;
     }
 
-    public function processModules(array $modules): array
+    public function processModules(array $modules, $language): array
     {
         $promises = [];
+        $resolvedDataMap = [];
 
         foreach ($modules as &$module) {
             $type = $module['type'] ?? null;
@@ -63,13 +67,28 @@ class ModuleProcessorManager
         // Wait for all promises to complete
         $results = Utils::settle($promises)->wait();
 
-        // Process modules with the resolved data
+        // Collect all resolved data
         foreach ($modules as &$module) {
             $type = $module['type'] ?? null;
             if ($type && isset($this->processors[$type])) {
                 $resolvedData = $results[$type]['value'] ?? [];
-                $module = $this->processors[$type]->process($module, $resolvedData);
+                $resolvedDataMap[$type] = $resolvedData;
             }
+        }
+
+        // Apply the Sanity client to modify the modules and resolve references at the end
+        foreach ($modules as &$module) {
+            $type = $module['type'] ?? null;
+            $resolvedData = $resolvedDataMap[$type] ?? [];
+            // Process the resolved data with the CMS client
+            $moduleData = array_merge($module, $resolvedData);
+            $module = $this->cmsClient->processData($moduleData, $language);
+
+            // Process the module with the resolved data if it has a processor
+            if ($type && isset($this->processors[$type])) {
+                $module = $this->processors[$type]->process($module);
+            }
+            
         }
 
         return $modules;
