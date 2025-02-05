@@ -7,6 +7,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use App\CmsClients\CmsClientInterface;
 use App\Modules\Manager\ModuleProcessorManager;
+use App\Utils\HtmlUpdater;
 
 class PageController
 {
@@ -117,10 +118,19 @@ class PageController
         }
 
         $scaffold = $this->getScaffold();
-        return $this->view->render($response, $template, [
+         // Render the Twig template with data
+         $html = $this->view->fetch($template, [
             'modules' => $data['modules'] ?? [],
             'scaffold' => $scaffold,
         ]);
+
+        // Update the HTML using HtmlUpdater
+        $htmlUpdater = new HtmlUpdater($html);
+        $updatedHtml = $htmlUpdater->updateHtml();
+
+        // Write the updated HTML to the response
+        $response->getBody()->write($updatedHtml);
+        return $response;
     }
 
 
