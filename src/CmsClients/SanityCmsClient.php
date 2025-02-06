@@ -116,6 +116,11 @@ class SanityCmsClient implements CmsClientInterface
                         return $data[$language];
                     }
                     return $data;
+                case 'localeText':
+                    if ($language && isset($data[$language])) {
+                        return $data[$language];
+                    }
+                    return $data;
                 case 'localeBlockContent':
                     return $this->processHtmlBlockModule($data);
                 case 'reference':
