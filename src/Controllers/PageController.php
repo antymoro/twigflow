@@ -6,30 +6,29 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use App\CmsClients\CmsClientInterface;
-use App\Modules\Manager\ModuleProcessorManager;
 use App\Utils\HtmlUpdater;
+use App\Processors\PageProcessor;
 
 class PageController
 {
     private Twig $view;
     private CmsClientInterface $cmsClient;
-    private ModuleProcessorManager $moduleProcessorManager;
     private string $templatePath;
     private string $userTemplatePath;
+    private PageProcessor $pageProcessor;
 
     /**
      * Constructor to initialize dependencies.
      *
      * @param Twig $view
      * @param CmsClientInterface $cmsClient
-     * @param ModuleProcessorManager $moduleProcessorManage
      * 
      */
-    public function __construct(Twig $view, CmsClientInterface $cmsClient, ModuleProcessorManager $moduleProcessorManager, string $templatePath = 'src/views/')
+    public function __construct(Twig $view, PageProcessor $pageProcessor, CmsClientInterface $cmsClient, string $templatePath = 'src/views/')
     {
         $this->view = $view;
+        $this->pageProcessor = $pageProcessor;
         $this->cmsClient = $cmsClient;
-        $this->moduleProcessorManager = $moduleProcessorManager;
         $this->templatePath = $templatePath;
         $this->userTemplatePath = BASE_PATH . '/application/views/';
     }
@@ -52,6 +51,8 @@ class PageController
         if (!$page) {
             return $this->renderError($response, 404, 'Page not found');
         }
+
+        $page = $this->pageProcessor->processPage($page, $language);
 
         return $this->renderPage($request, $response, $page, $language);
     }
@@ -91,17 +92,17 @@ class PageController
     /**
      * Helper method to render data in a 'page.twig' template.
      */
-    private function renderPage(Request $request, Response $response, array $data, ?string $language): Response
+    private function renderPage(Request $request, Response $response, array $data, string $language): Response
     {
-
-        if (isset($data['modules']) && is_array($data['modules'])) {
-            $data['modules'] = $this->moduleProcessorManager->processModules($data['modules'], $language);
-        }
 
         // Check if 'json' parameter is set to true
         $queryParams = $request->getQueryParams();
         if (isset($queryParams['json']) && $queryParams['json'] === 'true') {
-            $payload = json_encode($data['modules'], JSON_PRETTY_PRINT);
+            $jsonData = [
+                'modules' => $data['modules'] ?? [],
+                'globals' => $data['globals'] ?? [],
+            ];
+            $payload = json_encode($jsonData, JSON_PRETTY_PRINT);
             $response->getBody()->write($payload);
             return $response->withHeader('Content-Type', 'application/json');
         }
@@ -113,11 +114,10 @@ class PageController
             $template = $this->templatePath . $template;
         }
 
-        $scaffold = $this->getScaffold();
          // Render the Twig template with data
          $html = $this->view->fetch($template, [
             'modules' => $data['modules'] ?? [],
-            'scaffold' => $scaffold,
+            'globals' => $data['globals'] ?? [],
         ]);
 
         // Update the HTML using HtmlUpdater

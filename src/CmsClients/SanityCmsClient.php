@@ -32,7 +32,7 @@ class SanityCmsClient implements CmsClientInterface
 
     public function getScaffold(string $global): ?array
     {
-        $query = '*[_type == "' . $global . '"][0]';
+        $query = '*[_type == "menu"]';
         $response = $this->fetchQuery($query);
         return $response['result'] ?? null;
     }
@@ -84,17 +84,39 @@ class SanityCmsClient implements CmsClientInterface
      * @param string|null $language
      * @return array
      */
-    public function processData(array $data, ?string $language = null): array
-    {
-        // First process localization, HTML conversion, and collect references
-        $processed = $this->processDataRecursively($data, $language);
+  public function processData(array $modules, array $data, ?string $language = null): array
+{
+    // Normalize modules and merge async data.
+    $modulesArray = array_map(function ($module) use ($data) {
+        $module['type'] = $this->slugify($module['_type'] ?? '');
+        if (isset($data[$module['type']])) {
+            // merge async data under a dedicated key
+            $module = array_merge($module, $data[$module['type']]);
+            // $module['asyncData'] = $data[$module['type']];
+        }
+        return $module;
+    }, $modules);
 
-        // Fetch and cache all references
-        $references = $this->fetchReferences();
+    // Merge modules and globals for a joint recursive processing.
+    // Assume globals are provided under "globals" key in $data.
+    $combinedData = [
+        'modules' => $modulesArray,
+        'globals' => $data['globals'] ?? []
+    ];
 
-        // Substitute references in the processed data
-        return $this->substituteReferences($processed, $references, $language);
-    }
+    // Process both modules and globals in one recursive call.
+    $processedCombined = $this->processDataRecursively($combinedData, $language);
+
+    // Substitute references only once
+    $references = $this->fetchReferences();
+    $processedCombined = $this->substituteReferences($processedCombined, $references, $language);
+
+    // Return data separately.
+    return [
+        'modules' => $processedCombined['modules'] ?? [],
+        'globals' => $processedCombined['globals'] ?? []
+    ];
+}
 
     /**
      * Recursively processes an arbitrary data structure.
