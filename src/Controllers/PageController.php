@@ -80,13 +80,15 @@ class PageController
         }
 
         // Fetch content based on collection and slug
-        $content = $this->cmsClient->getCollectionItem($collection, $slug, $language);
+        $page = $this->cmsClient->getCollectionItem($collection, $slug, $language);
 
-        if (!$content) {
-            return $this->renderError($response, 404, 'Content not found');
+        if (!$page) {
+            return $this->renderError($response, 404, 'Page not found');
         }
 
-        return $this->renderPage($request, $response, $content, $language);
+        $page = $this->pageProcessor->processPage($page, $language);
+
+        return $this->renderPage($request, $response, $page, $language);
     }
 
     /**
