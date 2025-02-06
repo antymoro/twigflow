@@ -6,6 +6,7 @@ use App\CmsClients\PayloadCmsClient;
 use App\CmsClients\SanityCmsClient;
 use App\Controllers\PageController;
 use App\Controllers\CacheController;
+use App\Processors\PageProcessor;
 use App\Modules\Manager\ModuleProcessorManager;
 use App\Utils\ApiFetcher;
 use Slim\Views\Twig;
@@ -95,13 +96,31 @@ return [
         return new ModuleProcessorManager($apiFetcher, $cacheService, $cmsClient);
     },
 
+
+    // Register PageProcessor
+    PageProcessor::class => function ($container) {
+        return new PageProcessor(
+            $container->get(ApiFetcher::class),
+            $container->get(CacheService::class),
+            $container->get(CmsClientInterface::class)
+        );
+    },
+
+    // // Register PageController
+    // PageController::class => function ($container) {
+    //     return new PageController(
+    //         $container->get(PageProcessor::class),
+    //         $container->get(CmsClientInterface::class)
+    //     );
+    // },
+
     // Register PageController
     PageController::class => function ($c) {
         // Create and return a new PageController instance with dependencies
         return new PageController(
             $c->get(Twig::class),
-            $c->get(CmsClientInterface::class),
-            $c->get(ModuleProcessorManager::class)
+            $c->get(PageProcessor::class),
+            $c->get(CmsClientInterface::class)
         );
     },
 
