@@ -7,7 +7,6 @@ use App\CmsClients\SanityCmsClient;
 use App\Controllers\PageController;
 use App\Controllers\CacheController;
 use App\Processors\PageProcessor;
-use App\Modules\Manager\ModuleProcessorManager;
 use App\Utils\ApiFetcher;
 use Slim\Views\Twig;
 use Twig\Loader\FilesystemLoader;
@@ -88,15 +87,6 @@ return [
         return new ApiFetcher($baseUri);
     },
 
-    // Register ModuleProcessorManager
-    ModuleProcessorManager::class => function ($c) {
-        $apiFetcher = $c->get(ApiFetcher::class);
-        $cacheService = $c->get(CacheService::class);
-        $cmsClient = $c->get(CmsClientInterface::class);
-        return new ModuleProcessorManager($apiFetcher, $cacheService, $cmsClient);
-    },
-
-
     // Register PageProcessor
     PageProcessor::class => function ($container) {
         return new PageProcessor(
@@ -105,14 +95,6 @@ return [
             $container->get(CmsClientInterface::class)
         );
     },
-
-    // // Register PageController
-    // PageController::class => function ($container) {
-    //     return new PageController(
-    //         $container->get(PageProcessor::class),
-    //         $container->get(CmsClientInterface::class)
-    //     );
-    // },
 
     // Register PageController
     PageController::class => function ($c) {

@@ -84,38 +84,39 @@ class SanityCmsClient implements CmsClientInterface
      * @param string|null $language
      * @return array
      */
-    public function processData(array $modules, array $data, ?string $language = null): array
-    {
-        // Normalize modules and merge async data.
-        $modulesArray = array_map(function ($module) use ($data) {
-            $module['type'] = $this->slugify($module['_type'] ?? '');
-            if (isset($data[$module['type']])) {
-                // merge async data under a dedicated key
-                $module['asyncData'] = $data[$module['type']];
-            }
-            return $module;
-        }, $modules);
-    
-        // Merge modules and globals for a joint recursive processing.
-        // Assume globals are provided under "globals" key in $data.
-        $combinedData = [
-            'modules' => $modulesArray,
-            'globals' => $data['globals'] ?? []
-        ];
-    
-        // Process both modules and globals in one recursive call.
-        $processedCombined = $this->processDataRecursively($combinedData, $language);
-    
-        // Substitute references only once
-        $references = $this->fetchReferences();
-        $processedCombined = $this->substituteReferences($processedCombined, $references, $language);
-    
-        // Return data separately.
-        return [
-            'modules' => $processedCombined['modules'] ?? [],
-            'globals' => $processedCombined['globals'] ?? []
-        ];
-    }
+  public function processData(array $modules, array $data, ?string $language = null): array
+{
+    // Normalize modules and merge async data.
+    $modulesArray = array_map(function ($module) use ($data) {
+        $module['type'] = $this->slugify($module['_type'] ?? '');
+        if (isset($data[$module['type']])) {
+            // merge async data under a dedicated key
+            $module = array_merge($module, $data[$module['type']]);
+            // $module['asyncData'] = $data[$module['type']];
+        }
+        return $module;
+    }, $modules);
+
+    // Merge modules and globals for a joint recursive processing.
+    // Assume globals are provided under "globals" key in $data.
+    $combinedData = [
+        'modules' => $modulesArray,
+        'globals' => $data['globals'] ?? []
+    ];
+
+    // Process both modules and globals in one recursive call.
+    $processedCombined = $this->processDataRecursively($combinedData, $language);
+
+    // Substitute references only once
+    $references = $this->fetchReferences();
+    $processedCombined = $this->substituteReferences($processedCombined, $references, $language);
+
+    // Return data separately.
+    return [
+        'modules' => $processedCombined['modules'] ?? [],
+        'globals' => $processedCombined['globals'] ?? []
+    ];
+}
 
     /**
      * Recursively processes an arbitrary data structure.

@@ -6,7 +6,6 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use App\CmsClients\CmsClientInterface;
-use App\Modules\Manager\ModuleProcessorManager;
 use App\Utils\HtmlUpdater;
 use App\Processors\PageProcessor;
 
@@ -99,7 +98,11 @@ class PageController
         // Check if 'json' parameter is set to true
         $queryParams = $request->getQueryParams();
         if (isset($queryParams['json']) && $queryParams['json'] === 'true') {
-            $payload = json_encode($data['modules'], JSON_PRETTY_PRINT);
+            $jsonData = [
+                'modules' => $data['modules'] ?? [],
+                'globals' => $data['globals'] ?? [],
+            ];
+            $payload = json_encode($jsonData, JSON_PRETTY_PRINT);
             $response->getBody()->write($payload);
             return $response->withHeader('Content-Type', 'application/json');
         }

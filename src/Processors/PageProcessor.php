@@ -48,7 +48,6 @@ class PageProcessor
         // Step 4: Process each module with the resolved data.
         $pageData = $this->cmsClient->processData($modules, $results, $language);
 
-
         // Step 6: Process each module via its processor.
         $modules = $this->processModules($pageData['modules'], $language);
 
@@ -107,22 +106,6 @@ class PageProcessor
         return $promises;
     }
 
-    /**
-     * Collect references from the settled promises.
-     *
-     * @param array $results
-     * @return array
-     */
-    private function collectReferences(array $results): array
-    {
-        $references = [];
-        foreach ($results as $result) {
-            if (isset($result['value']['_ref'])) {
-                $references[] = $result['value']['_ref'];
-            }
-        }
-        return $references;
-    }
 
     /**
      * Process each module using its processor.
@@ -154,21 +137,7 @@ class PageProcessor
         return $this->apiFetcher->asyncFetchFromApi($url);
     }
 
-    /**
-     * Collect global data from settled promises.
-     *
-     * @param array $results
-     * @return array
-     */
-    private function collectGlobalData(array $results): array
-    {
-        $globals = [];
-        if (isset($results['global_navigation']['value'])) {
-            $globals['navigation'] = $results['global_navigation']['value'];
-        }
-        return $globals;
-    }
-
+    
     /**
      * Load a processor by module type.
      *
