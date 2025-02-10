@@ -141,7 +141,7 @@ class PageController
         ]);
 
         // Check if performance measurement is enabled
-        if ($_ENV['MEASURE_PERFORMANCE'] == 'true') {
+        if (isset($_ENV['MEASURE_PERFORMANCE']) && $_ENV['MEASURE_PERFORMANCE'] == 'true' && defined('START_TIME')) {
             // Calculate the elapsed time
             $elapsedTime = microtime(true) - START_TIME;
             $html .= "\n<!-- Page generated in " . round($elapsedTime, 4) . " seconds -->";
