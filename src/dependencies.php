@@ -32,7 +32,7 @@ $debug = $environment === 'development';
 // Get the cache setting from the environment variable
 $cacheEnabled = filter_var($_ENV['TWIG_CACHE'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
 // Set the cache directory based on the environment variable
-$cacheDir = $cacheEnabled ? BASE_PATH . '/cache' : false;
+$cacheDir = $cacheEnabled ? BASE_PATH . '/cache/twig' : false;
 
 return [
     // Register Twig Loader
@@ -42,9 +42,9 @@ return [
     },
 
     // Register Twig
-    Twig::class => function ($c) use ($cacheDir, $debug) {
+    Twig::class => function ($container) use ($cacheDir, $debug) {
         // Get the Twig Loader from the container
-        $loader = $c->get(\Twig\Loader\LoaderInterface::class);
+        $loader = $container->get(\Twig\Loader\LoaderInterface::class);
         // Create and return a new Twig instance with the loader and cache configuration
         $twig = new Twig($loader, [
             'cache' => $cacheDir,
@@ -55,20 +55,20 @@ return [
     },
 
     // Alias 'view' to Twig
-    'view' => function ($c) {
+    'view' => function ($container) {
         // Alias the 'view' key to the Twig instance
-        return $c->get(Twig::class);
+        return $container->get(Twig::class);
     },
 
     // Register CacheService
     CacheService::class => \DI\create(CacheService::class),
 
     // Register CmsClientInterface
-    CmsClientInterface::class => function ($c) {
+    CmsClientInterface::class => function ($container) {
         // Determine the CMS client to use based on environment variables
         $cmsClient = $_ENV['CMS_CLIENT'] ?? 'payload';
         $apiUrl = $_ENV['API_URL'];
-        $cacheService = $c->get(CacheService::class);
+        $cacheService = $container->get(CacheService::class);
 
         // Return the appropriate CMS client implementation
         switch (strtolower($cmsClient)) {
@@ -97,18 +97,19 @@ return [
     },
 
     // Register PageController
-    PageController::class => function ($c) {
+    PageController::class => function ($container) {
         // Create and return a new PageController instance with dependencies
         return new PageController(
-            $c->get(Twig::class),
-            $c->get(PageProcessor::class),
-            $c->get(CmsClientInterface::class)
+            $container->get(Twig::class),
+            $container->get(PageProcessor::class),
+            $container->get(CmsClientInterface::class),
+            $container->get(CacheService::class)
         );
     },
 
     // Register CacheController
-    CacheController::class => function ($c) {
+    CacheController::class => function ($container) {
         // Create and return a new CacheController instance with dependencies
-        return new CacheController($c->get(CacheService::class));
+        return new CacheController($container->get(CacheService::class));
     },
 ];

@@ -8,6 +8,7 @@ use Slim\Views\Twig;
 use App\CmsClients\CmsClientInterface;
 use App\Utils\HtmlUpdater;
 use App\Processors\PageProcessor;
+use App\Services\CacheService;
 
 class PageController
 {
@@ -16,54 +17,41 @@ class PageController
     private string $templatePath;
     private string $userTemplatePath;
     private PageProcessor $pageProcessor;
+    private CacheService $cacheService;
 
     /**
      * Constructor to initialize dependencies.
      *
      * @param Twig $view
+     * @param PageProcessor $pageProcessor
      * @param CmsClientInterface $cmsClient
-     * 
+     * @param CacheService $cacheService
+     * @param string $templatePath
      */
-    public function __construct(Twig $view, PageProcessor $pageProcessor, CmsClientInterface $cmsClient, string $templatePath = 'src/views/')
+    public function __construct(Twig $view, PageProcessor $pageProcessor, CmsClientInterface $cmsClient, CacheService $cacheService, string $templatePath = 'src/views/')
     {
         $this->view = $view;
         $this->pageProcessor = $pageProcessor;
         $this->cmsClient = $cmsClient;
+        $this->cacheService = $cacheService;
         $this->templatePath = $templatePath;
         $this->userTemplatePath = BASE_PATH . '/application/views/';
     }
 
     /**
-     * Show a page based on the provided slug and language.
+     * Handles incoming page requests.
+     *
+     * @param Request $request
+     * @param Response $response
+     * @param array $args Contains route arguments (e.g., slug, language)
+     * @return Response
      */
     public function show(Request $request, Response $response, array $args): Response
     {
-        $slug = $args['slug'] ?? null;
+        $slug = $args['slug'] ?? '';
         $language = $request->getAttribute('language') ?? null;
 
-        if (!$slug) {
-            return $this->renderError($response, 400, 'Invalid page slug');
-        }
-
-        // Fetch the page data
-        $page = $this->cmsClient->getPage($slug, $language);
-
-        if (!$page) {
-            return $this->renderError($response, 404, 'Page not found');
-        }
-
-        $page = $this->pageProcessor->processPage($page, $language);
-
-        return $this->renderPage($request, $response, $page, $language);
-    }
-
-    /**
-     * Show the homepage, falling back to "homepage" if not set in the environment.
-     */
-    public function showHomepage(Request $request, Response $response): Response
-    {
-        $homepageSlug = $_ENV['HOMEPAGE_SLUG'] ?? 'homepage';
-        return $this->show($request, $response, ['slug' => $homepageSlug]);
+        return $this->handlePageRequest($request, $response, $slug, $language);
     }
 
     /**
@@ -76,33 +64,61 @@ class PageController
         $language = $request->getAttribute('language') ?? null;
 
         if (!$collection || !$slug) {
-            return $this->renderError($response, 400, 'Invalid collection or slug');
+            return $this->renderError($response, 404, 'Collection or slug not specified');
         }
 
-        // Fetch content based on collection and slug
-        $page = $this->cmsClient->getCollectionItem($collection, $slug, $language);
+        return $this->handlePageRequest($request, $response, $slug, $language);
+    }
 
-        if (!$page) {
-            return $this->renderError($response, 404, 'Page not found');
+    /**
+     * Show the homepage, falling back to "homepage" if not set in the environment.
+     */
+    public function showHomepage(Request $request, Response $response): Response
+    {
+        $homepageSlug = $_ENV['HOMEPAGE_SLUG'] ?? 'homepage';
+        return $this->show($request, $response, ['slug' => $homepageSlug]);
+    }
+
+    /**
+     * Common logic to handle page requests.
+     */
+    private function handlePageRequest(Request $request, Response $response, string $slug, ?string $language): Response
+    {
+        $cacheMode = $_ENV['CACHE_MODE'] ?? 'processed';
+        $cacheKey = 'page_' . md5($slug . $language);
+
+        if ($cacheMode === 'raw') {
+            // Cache raw fetched data
+            $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language) {
+                return $this->cmsClient->getPage($slug, $language);
+            });
+            $pageData = $this->pageProcessor->processPage($pageData, $language);
+        } else {
+            // Cache processed data
+            $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language) {
+                $page = $this->cmsClient->getPage($slug, $language);
+                if (!$page) {
+                    throw new \Exception('Page not found');
+                }
+                return $this->pageProcessor->processPage($page, $language);
+            });
         }
 
-        $page = $this->pageProcessor->processPage($page, $language);
-
-        return $this->renderPage($request, $response, $page, $language);
+        return $this->renderPage($request, $response, $pageData, $language);
     }
 
     /**
      * Helper method to render data in a 'page.twig' template.
      */
-    private function renderPage(Request $request, Response $response, array $data, string $language): Response
+    private function renderPage(Request $request, Response $response, array $data, ?string $language): Response
     {
-
         // Check if 'json' parameter is set to true
         $queryParams = $request->getQueryParams();
         if (isset($queryParams['json']) && $queryParams['json'] === 'true') {
             $jsonData = [
                 'modules' => $data['modules'] ?? [],
                 'globals' => $data['globals'] ?? [],
+                'translations' => $data['translations'] ?? [],
             ];
             $payload = json_encode($jsonData, JSON_PRETTY_PRINT);
             $response->getBody()->write($payload);
@@ -116,13 +132,20 @@ class PageController
             $template = $this->templatePath . $template;
         }
 
-         // Render the Twig template with data
-         $html = $this->view->fetch($template, [
+        // Render the Twig template with data
+        $html = $this->view->fetch($template, [
             'modules' => $data['modules'] ?? [],
             'globals' => $data['globals'] ?? [],
             'translations' => $data['translations'] ?? [],
             'home_url'  => (empty($language)) ? '/' : '/'.$language,
         ]);
+
+        // Check if performance measurement is enabled
+        if ($_ENV['MEASURE_PERFORMANCE'] == 'true') {
+            // Calculate the elapsed time
+            $elapsedTime = microtime(true) - START_TIME;
+            $html .= "\n<!-- Page generated in " . round($elapsedTime, 4) . " seconds -->";
+        }
 
         // Update the HTML using HtmlUpdater
         $htmlUpdater = new HtmlUpdater($html);
@@ -133,7 +156,6 @@ class PageController
         return $response;
     }
 
-
     /**
      * Helper method to render error pages.
      */
@@ -143,5 +165,4 @@ class PageController
             'message' => $message
         ]);
     }
-
 }

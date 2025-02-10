@@ -31,7 +31,28 @@ class CacheController
     public function clearCache(Request $request, Response $response, array $args): Response
     {
         $this->cacheService->clearAll();
+
+        $twigCacheDir = BASE_PATH . '/cache/twig';
+        $this->clearTwigCache($twigCacheDir);
+
         $response->getBody()->write("Cache cleared successfully.");
         return $response;
+    }
+
+    private function clearTwigCache(string $cacheDir): void
+    {
+        if (is_dir($cacheDir)) {
+            $files = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($cacheDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::CHILD_FIRST
+            );
+
+            foreach ($files as $fileinfo) {
+                $todo = ($fileinfo->isDir() ? 'rmdir' : 'unlink');
+                $todo($fileinfo->getRealPath());
+            }
+
+            rmdir($cacheDir);
+        }
     }
 }
