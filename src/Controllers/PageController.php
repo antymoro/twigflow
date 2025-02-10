@@ -116,13 +116,12 @@ class PageController
             $template = $this->templatePath . $template;
         }
 
-        // dd($data['globals']);
-
          // Render the Twig template with data
          $html = $this->view->fetch($template, [
             'modules' => $data['modules'] ?? [],
             'globals' => $data['globals'] ?? [],
             'translations' => $data['translations'] ?? [],
+            'home_url'  => (empty($language)) ? '/' : '/'.$language,
         ]);
 
         // Update the HTML using HtmlUpdater
