@@ -241,7 +241,7 @@ class SanityCmsClient implements CmsClientInterface
 
             if (isset($data['_type']) && $data['_type'] === 'sanity.imageAsset' && isset($data['_id'])) {
                 $filename = preg_replace('/^image-/', '', $data['_id']);
-                $filename = preg_replace('/-(jpg|png|webp)$/', '.$1', $filename);
+                $filename = preg_replace('/-(jpg|png|webp|svg)$/', '.$1', $filename);
                 // Construct URL
                 $data = 'https://cdn.sanity.io/images/isvajgup/production/' . $filename;
             }
