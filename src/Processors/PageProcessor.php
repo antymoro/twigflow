@@ -38,15 +38,28 @@ class PageProcessor
     {
         $modules = $pageData['modules'] ?? [];
 
-        // Step 1: Collect all promises for modules and globals.
+        // Step 1: Collect all promises for modules
         $promises = $this->collectPromises($modules, $language);
+
+        // Step 2: Collect promises for globals.
+        $globalsConfig = json_decode(file_get_contents(BASE_PATH . '/application/globals.json'), true);
+        foreach ($globalsConfig as $key => $global) {
+            $promises[$key] = $this->fetchGlobal($global['query']);
+        }
 
         // Step 2: Wait for all promises to settle.
         $results = Utils::settle($promises)->wait();
         $results = $this->flattenResults($results);
 
+        // Insert global data into pageData for processing.
+        $results['globals'] = [];
+        foreach ($globalsConfig as $key => $global) {
+            $results['globals'][$key] = $results[$key] ?? [];
+            unset($results[$key]);
+        }
+
         // Step 3: Process each module with the resolved data.
-        $pageData = $this->cmsClient->processData($modules, $results, $language);
+        $pageData = $this->cmsClient->processData($modules, $globalsConfig, $results, $language);
 
         // Step 4: Process each module via its processor.
         $modules = $this->processModules($pageData['modules'], $language);
@@ -55,6 +68,11 @@ class PageProcessor
         // Step 5: Add translations to the page data.
         $staticTranslations = json_decode(file_get_contents(BASE_PATH . '/application/translations.json'), true);
         $pageData['translations'] = $this->parseTranslations($staticTranslations, $language);
+
+        // Step 7: Extract processed globals back into the globals key.
+        foreach ($globalsConfig as $key => $global) {
+            $pageData['globals'][$key] = $pageData['globals'][$key] ?? [];
+        }
 
         return $pageData;
     }
@@ -103,9 +121,6 @@ class PageProcessor
             }
         }
 
-        // // Add global promise for navigation.
-        $promises['globals'] = $this->fetchNavigation();
-
         return $promises;
     }
 
@@ -127,19 +142,6 @@ class PageProcessor
         }
         return $modules;
     }
-
-    /**
-     * Fetch global navigation asynchronously.
-     *
-     * @return \GuzzleHttp\Promise\PromiseInterface
-     */
-    private function fetchNavigation()
-    {
-        $query = '*[_type == "menu"]';
-        $url = $_ENV['API_URL'] . '/data/query/production?query=' . urlencode($query);
-        return $this->apiFetcher->asyncFetchFromApi($url);
-    }
-
 
     /**
      * Load a processor by module type.
@@ -199,5 +201,17 @@ class PageProcessor
             }
         }
         return $parsedTranslations;
+    }
+
+    /**
+     * Fetch a global component asynchronously.
+     *
+     * @param string $query
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    private function fetchGlobal(string $query)
+    {
+        $url = $_ENV['API_URL'] . '/data/query/production?query=' . urlencode($query);
+        return $this->apiFetcher->asyncFetchFromApi($url);
     }
 }

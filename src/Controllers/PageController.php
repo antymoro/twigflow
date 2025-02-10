@@ -116,6 +116,8 @@ class PageController
             $template = $this->templatePath . $template;
         }
 
+        // dd($data['globals']);
+
          // Render the Twig template with data
          $html = $this->view->fetch($template, [
             'modules' => $data['modules'] ?? [],
@@ -143,14 +145,4 @@ class PageController
         ]);
     }
 
-    /**
-     * Fetch global data such as header and footer.
-     */
-    private function getScaffold(): array
-    {
-        $scaffold = [];
-        $scaffold['header'] = $this->cmsClient->getScaffold('header');
-        $scaffold['footer'] = $this->cmsClient->getScaffold('footer');
-        return $scaffold;
-    }
 }

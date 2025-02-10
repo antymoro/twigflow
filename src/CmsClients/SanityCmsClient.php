@@ -30,13 +30,6 @@ class SanityCmsClient implements CmsClientInterface
         return $this->formatPage($response, $language);
     }
 
-    public function getScaffold(string $global): ?array
-    {
-        $query = '*[_type == "menu"]';
-        $response = $this->fetchQuery($query);
-        return $response['result'] ?? null;
-    }
-
     public function getCollectionItem(string $collection, string $slug, ?string $language = null): ?array
     {
         $query = '*[_type == "' . $collection . '" && slug.current == "' . $slug . '"][0]';
@@ -84,39 +77,46 @@ class SanityCmsClient implements CmsClientInterface
      * @param string|null $language
      * @return array
      */
-  public function processData(array $modules, array $data, ?string $language = null): array
-{
-    // Normalize modules and merge async data.
-    $modulesArray = array_map(function ($module) use ($data) {
-        $module['type'] = $this->slugify($module['_type'] ?? '');
-        if (isset($data[$module['type']])) {
-            // merge async data under a dedicated key
-            $module = array_merge($module, $data[$module['type']]);
-            // $module['asyncData'] = $data[$module['type']];
+    public function processData(array $modules, array $globalsConfig, array $data, ?string $language = null): array
+    {
+
+        $globals = array_keys($globalsConfig);
+
+        foreach ($data['globals'] as $key => $value) {
+            if (in_array($key, $globals) && !empty($value['result'])) {
+                $data['globals'][$key] = $value['result'];
+            }
         }
-        return $module;
-    }, $modules);
 
-    // Merge modules and globals for a joint recursive processing.
-    // Assume globals are provided under "globals" key in $data.
-    $combinedData = [
-        'modules' => $modulesArray,
-        'globals' => $data['globals'] ?? []
-    ];
+        // Normalize modules and merge async data.
+        $modulesArray = array_map(function ($module) use ($data) {
+            $module['type'] = $this->slugify($module['_type'] ?? '');
+            if (isset($data[$module['type']])) {
+                // merge async data under a dedicated key
+                $module = array_merge($module, $data[$module['type']]);
+            }
+            return $module;
+        }, $modules);
 
-    // Process both modules and globals in one recursive call.
-    $processedCombined = $this->processDataRecursively($combinedData, $language);
+        // Merge modules and globals for a joint recursive processing.
+        $combinedData = [
+            'modules' => $modulesArray,
+            'globals' => $data['globals'] ?? []
+        ];
 
-    // Substitute references only once
-    $references = $this->fetchReferences();
-    $processedCombined = $this->substituteReferences($processedCombined, $references, $language);
+        // Process both modules and globals in one recursive call.
+        $processedCombined = $this->processDataRecursively($combinedData, $language);
 
-    // Return data separately.
-    return [
-        'modules' => $processedCombined['modules'] ?? [],
-        'globals' => $processedCombined['globals'] ?? []
-    ];
-}
+        // Substitute references only once
+        $references = $this->fetchReferences();
+        $processedCombined = $this->substituteReferences($processedCombined, $references, $language);
+
+        // Return data separately.
+        return [
+            'modules' => $processedCombined['modules'] ?? [],
+            'globals' => $processedCombined['globals'] ?? []
+        ];
+    }
 
     /**
      * Recursively processes an arbitrary data structure.
@@ -132,6 +132,12 @@ class SanityCmsClient implements CmsClientInterface
     private function processDataRecursively($data, ?string $language)
     {
         if (is_array($data)) {
+    
+            // Remove draft items
+            if (isset($data['_id']) && str_contains($data['_id'], 'drafts.')) {
+                return null;
+            }
+    
             switch ($data['_type'] ?? null) {
                 case 'localeString':
                     if ($language && isset($data[$language])) {
@@ -150,11 +156,14 @@ class SanityCmsClient implements CmsClientInterface
                         $this->referenceIds[] = $data['_ref'];
                     }
                     return $data;
-
+    
                 default:
                     $result = [];
                     foreach ($data as $key => $value) {
-                        $result[$key] = $this->processDataRecursively($value, $language);
+                        $processedValue = $this->processDataRecursively($value, $language);
+                        if ($processedValue !== null) {
+                            $result[$key] = $processedValue;
+                        }
                     }
                     return $result;
             }
@@ -300,5 +309,21 @@ class SanityCmsClient implements CmsClientInterface
         $text = preg_replace('~_+~', '_', trim($text, '_'));
         // Lowercase the result
         return $text !== '' ? strtolower($text) : 'n_a';
+    }
+
+    public function constructFullQuery($query): string
+    {
+        // Append the condition to exclude drafts
+        $condition = " && !(_id in path('drafts.**'))";
+        // Check if the query already has conditions
+        if (strpos($query, '[') !== false && strpos($query, ']') !== false) {
+            // Insert the condition before the closing bracket
+            $query = preg_replace('/\]$/', $condition . ']', $query);
+        } else {
+            // Add the condition to the query
+            $query .= '[' . $condition . ']';
+        }
+
+        return $query;
     }
 }
