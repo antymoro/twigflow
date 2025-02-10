@@ -120,6 +120,7 @@ class PageController
          $html = $this->view->fetch($template, [
             'modules' => $data['modules'] ?? [],
             'globals' => $data['globals'] ?? [],
+            'translations' => $data['translations'] ?? [],
         ]);
 
         // Update the HTML using HtmlUpdater

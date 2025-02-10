@@ -45,13 +45,16 @@ class PageProcessor
         $results = Utils::settle($promises)->wait();
         $results = $this->flattenResults($results);
 
-        // Step 4: Process each module with the resolved data.
+        // Step 3: Process each module with the resolved data.
         $pageData = $this->cmsClient->processData($modules, $results, $language);
 
-        // Step 6: Process each module via its processor.
+        // Step 4: Process each module via its processor.
         $modules = $this->processModules($pageData['modules'], $language);
-
         $pageData['modules']   = $modules;
+
+        // Step 5: Add translations to the page data.
+        $staticTranslations = json_decode(file_get_contents(BASE_PATH . '/application/translations.json'), true);
+        $pageData['translations'] = $this->parseTranslations($staticTranslations, $language);
 
         return $pageData;
     }
@@ -137,7 +140,7 @@ class PageProcessor
         return $this->apiFetcher->asyncFetchFromApi($url);
     }
 
-    
+
     /**
      * Load a processor by module type.
      *
@@ -176,5 +179,25 @@ class PageProcessor
             }
         }
         return $flattened;
+    }
+
+    /**
+     * Parse translations to extract the current locale's strings.
+     *
+     * @param array $translations
+     * @param string|null $locale
+     * @return array
+     */
+    private function parseTranslations(array $translations, ?string $locale): array
+    {
+        $parsedTranslations = [];
+        foreach ($translations as $key => $translation) {
+            if (isset($translation[$locale])) {
+                $parsedTranslations[$key] = $translation[$locale];
+            } else {
+                $parsedTranslations[$key] = $translation['en'] ?? '';
+            }
+        }
+        return $parsedTranslations;
     }
 }
