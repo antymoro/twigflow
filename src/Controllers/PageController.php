@@ -67,7 +67,7 @@ class PageController
             return $this->renderError($response, 404, 'Collection or slug not specified');
         }
 
-        return $this->handlePageRequest($request, $response, $slug, $language);
+        return $this->handlePageRequest($request, $response, $slug, $language, $collection);
     }
 
     /**
@@ -82,28 +82,36 @@ class PageController
     /**
      * Common logic to handle page requests.
      */
-    private function handlePageRequest(Request $request, Response $response, string $slug, ?string $language): Response
+    private function handlePageRequest(Request $request, Response $response, string $slug, ?string $language, ?string $collection = null): Response
     {
         $cacheMode = $_ENV['CACHE_MODE'] ?? 'processed';
-        $cacheKey = 'page_' . md5($slug . $language);
-
+        // Include $collection in the cache key for uniqueness
+        $cacheKey = 'page_' . md5($slug . $language . ($collection ?? ''));
+    
         if ($cacheMode === 'raw') {
             // Cache raw fetched data
-            $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language) {
+            $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language, $collection) {
+                if ($collection !== null) {
+                    return $this->cmsClient->getCollectionItem($collection, $slug, $language);
+                }
                 return $this->cmsClient->getPage($slug, $language);
             });
             $pageData = $this->pageProcessor->processPage($pageData, $language);
         } else {
             // Cache processed data
-            $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language) {
-                $page = $this->cmsClient->getPage($slug, $language);
+            $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language, $collection) {
+                if ($collection !== null) {
+                    $page = $this->cmsClient->getCollectionItem($collection, $slug, $language);
+                } else {
+                    $page = $this->cmsClient->getPage($slug, $language);
+                }
                 if (!$page) {
                     throw new \Exception('Page not found');
                 }
                 return $this->pageProcessor->processPage($page, $language);
             });
         }
-
+    
         return $this->renderPage($request, $response, $pageData, $language);
     }
 
