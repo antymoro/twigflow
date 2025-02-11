@@ -51,21 +51,31 @@ class PageProcessor
         $results = Utils::settle($promises)->wait();
         $results = $this->flattenResults($results);
 
-        // Insert global data into pageData for processing.
+        // Step 3: Clean up the results and separate globals from modules.
         $results['globals'] = [];
         foreach ($globalsConfig as $key => $global) {
             $results['globals'][$key] = $results[$key] ?? [];
             unset($results[$key]);
         }
 
-        // Step 3: Process each module with the resolved data.
+        $results['modulesAsyncData'] = [];
+
+        foreach ($results as $key => $result) {
+            if (strpos($key, 'module_') === 0) {
+                $index = intval(str_replace('module_', '', $key));
+                $results['modulesAsyncData'][$index] = $result;
+                unset($results[$key]);
+            }
+        }
+
+        // Step 4: Process each module with the resolved data.
         $pageData = $this->cmsClient->processData($modules, $globalsConfig, $results, $language);
 
-        // Step 4: Process each module via its processor.
-        $modules = $this->processModules($pageData['modules'], $language);
+        // Step 5: Process each module via its processor.
+        $modules = $this->processModules($pageData, $language);
         $pageData['modules']   = $modules;
 
-        // Step 5: Add translations to the page data.
+        // Step 6: Add translations to the page data.
         $staticTranslations = json_decode(file_get_contents(BASE_PATH . '/application/translations.json'), true);
         $pageData['translations'] = $this->parseTranslations($staticTranslations, $language);
 
@@ -88,40 +98,54 @@ class PageProcessor
     {
         $promises = [];
 
-        // Use module type as key: duplicate modules of the same type reuse the same promise.
+        $index = 0;
+
         foreach ($modules as $module) {
+
             $type = $module['type'] ?? null;
-            if ($type) {
-                if (!isset($this->processors[$type])) {
-                    $this->loadProcessor($type);
-                }
-                if (isset($this->processors[$type]) && method_exists($this->processors[$type], 'fetchData')) {
-                    // Only add a promise for this type once.
-                    if (!isset($promises[$type])) {
-                        $processor = $this->processors[$type];
-                        $dataArray = $processor->fetchData($module, $this->apiFetcher);
-                        $cachedArray = [];
-                        foreach ($dataArray as $dataKey => $guzzlePromise) {
-                            $cacheKey = 'module_' . $type . '_' . $dataKey;
-                            $existingValue = $this->cacheService->get($cacheKey, fn() => false);
-                            if ($existingValue !== false) {
-                                $cachedArray[$dataKey] = Create::promiseFor($existingValue);
-                            } else {
-                                $cachedArray[$dataKey] = $guzzlePromise->then(function ($response) use ($cacheKey) {
-                                    $data = json_decode($response->getBody()->getContents(), true);
-                                    // Save to cache using the same logic as ModuleProcessorManager.
-                                    $this->cacheService->get($cacheKey, fn() => $data);
-                                    return $data;
-                                });
-                            }
-                        }
-                        $promises[$type] = Utils::all($cachedArray);
-                    }
-                }
+            if (!$type) {
+                $index++;
+                continue;
             }
+
+            if (!isset($this->processors[$type])) {
+                $this->loadProcessor($type);
+            }
+
+            if (isset($this->processors[$type]) && method_exists($this->processors[$type], 'fetchData')) {
+                $processor = $this->processors[$type];
+                $dataArray = $processor->fetchData($module, $this->apiFetcher, []);
+                $cachedArray = $this->handleCaching($dataArray, $index);
+                $promises['module_' . $index] = Utils::all($cachedArray);
+            }
+
+            $index++;
         }
 
         return $promises;
+    }
+
+    private function handleCaching(array $dataArray, string $index): array
+    {
+        $cachedArray = [];
+
+        foreach ($dataArray as $dataKey => $guzzlePromise) {
+            $cacheKey = 'module_' . $index . '_' . $dataKey;
+
+            $existingValue = $this->cacheService->get($cacheKey, fn() => false);
+
+            if ($existingValue !== false) {
+                $cachedArray[$dataKey] = Create::promiseFor($existingValue);
+            } else {
+                $cachedArray[$dataKey] = $guzzlePromise->then(function ($response) use ($cacheKey) {
+                    $data = json_decode($response->getBody()->getContents(), true);
+                    $this->cacheService->get($cacheKey, fn() => $data);
+                    return $data;
+                });
+            }
+        }
+
+        return $cachedArray;
     }
 
 
@@ -132,13 +156,22 @@ class PageProcessor
      * @param string|null $language
      * @return array
      */
-    private function processModules(array $modules, ?string $language): array
+    private function processModules(array $pageData, ?string $language): array
     {
+        $modules = $pageData['modules'] ?? [];
+
+        $index = 0;
         foreach ($modules as &$module) {
             $type = $module['type'] ?? null;
             if ($type && isset($this->processors[$type])) {
-                $module = $this->processors[$type]->process($module);
+                $moduleAsyncData = [];
+                if (isset($pageData['modulesAsyncData'][$index])) {
+                    $moduleAsyncData = $pageData['modulesAsyncData'][$index];
+                    // dd($moduleAsyncData);
+                }
+                $module = $this->processors[$type]->process($module, $moduleAsyncData);
             }
+            $index++;
         }
         return $modules;
     }
@@ -211,7 +244,7 @@ class PageProcessor
      */
     private function fetchGlobal(string $query)
     {
-        $url = $_ENV['API_URL'] . '/data/query/production?query=' . urlencode($query);
+        $url = '/data/query/production?query=' . urlencode($query);
         return $this->apiFetcher->asyncFetchFromApi($url);
     }
 }

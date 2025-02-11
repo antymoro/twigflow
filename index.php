@@ -3,6 +3,7 @@
 // Define the base paths for the application
 define('BASE_PATH', __DIR__);
 define('TWIGFLOW_PATH', BASE_PATH . '/vendor/antymoro/twigflow');
+define('START_TIME', microtime(true));
 
 // Display errors for development
 ini_set('display_errors', 1);

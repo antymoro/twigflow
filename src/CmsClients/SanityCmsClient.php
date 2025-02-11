@@ -42,8 +42,8 @@ class SanityCmsClient implements CmsClientInterface
      */
     private function fetchQuery(string $query): ?array
     {
-        $url = $this->apiUrl . '/data/query/production?query=' . urlencode($query);
-        return $this->apiFetcher->fetchFromApi($url);
+        $query = '/data/query/production?query=' . urlencode($query);
+        return $this->apiFetcher->fetchFromApi($query);
     }
 
     /**
@@ -80,6 +80,7 @@ class SanityCmsClient implements CmsClientInterface
     public function processData(array $modules, array $globalsConfig, array $data, ?string $language = null): array
     {
 
+
         $globals = array_keys($globalsConfig);
 
         foreach ($data['globals'] as $key => $value) {
@@ -91,16 +92,13 @@ class SanityCmsClient implements CmsClientInterface
         // Normalize modules and merge async data.
         $modulesArray = array_map(function ($module) use ($data) {
             $module['type'] = $this->slugify($module['_type'] ?? '');
-            if (isset($data[$module['type']])) {
-                // merge async data under a dedicated key
-                $module = array_merge($module, $data[$module['type']]);
-            }
             return $module;
         }, $modules);
 
         // Merge modules and globals for a joint recursive processing.
         $combinedData = [
             'modules' => $modulesArray,
+            'modulesAsyncData' => $data['modulesAsyncData'] ?? [],
             'globals' => $data['globals'] ?? []
         ];
 
@@ -111,9 +109,18 @@ class SanityCmsClient implements CmsClientInterface
         $references = $this->fetchReferences();
         $processedCombined = $this->substituteReferences($processedCombined, $references, $language);
 
+        foreach ($processedCombined['modulesAsyncData'] as $index => $module) {
+            foreach ($module as $key => $value) {
+                if (!empty($value['result'])) {
+                    $processedCombined['modulesAsyncData'][$index][$key] = $value['result'];
+                }
+            }
+        }
+
         // Return data separately.
         return [
             'modules' => $processedCombined['modules'] ?? [],
+            'modulesAsyncData' => $processedCombined['modulesAsyncData'] ?? [],
             'globals' => $processedCombined['globals'] ?? []
         ];
     }
@@ -188,7 +195,7 @@ class SanityCmsClient implements CmsClientInterface
         // Build GROQ query specifying the fields you need (e.g. _id and slug)
         $query = '*[_id in ' . $refIdsString . ']{ _id, slug, _type }';
         // Build the URL with query and parameters.
-        $queryUrl = $this->apiUrl . '/data/query/production?query=' . urlencode($query);
+        $queryUrl = '/data/query/production?query=' . urlencode($query);
 
         // Fetch the result.
         $response = $this->apiFetcher->fetchFromApi($queryUrl);

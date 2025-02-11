@@ -11,13 +11,15 @@ class ApiFetcher
 {
     private CacheService $cache;
     private Client $client;
+    private string $apiUrl;
 
     public function __construct(string $baseUri)
     {
-        $headers = [];
+
+        $this->apiUrl = rtrim($baseUri, '/');
 
         $apiKey = $_ENV['API_KEY'] ?? null;
-
+        $headers = [];
         if ($apiKey) {
             $headers['Authorization'] = 'Bearer ' . $apiKey;
         }
@@ -27,14 +29,14 @@ class ApiFetcher
             'timeout'  => 5.0,
             'headers'  => $headers,
         ]);
+
         $this->cache = new CacheService();
     }
 
     public function fetchFromApi(string $url, array $options = []): ?array
     {
-        if (isset($options['query'])) {
-            $url .= '?' . http_build_query($options['query']);
-        }
+        $url = $this->apiUrl . $url;
+        
         $cacheKey = $this->generateCacheKey($url);
         return $this->cache->get($cacheKey, function () use ($url) {
             try {
@@ -49,9 +51,7 @@ class ApiFetcher
 
     public function asyncFetchFromApi(string $url, array $options = []): PromiseInterface
     {
-        if (isset($options['query'])) {
-            $url .= '?' . http_build_query($options['query']);
-        }
+        $url = $this->apiUrl . $url;
         return $this->client->getAsync($url);
     }
 

@@ -4,5 +4,5 @@ namespace App\Modules\Manager;
 
 interface ModuleProcessorInterface
 {
-    public function process(array $module): array;
+    public function process(array $module, array $data): array;
 }
