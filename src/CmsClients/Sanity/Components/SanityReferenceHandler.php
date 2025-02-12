@@ -43,7 +43,6 @@ class SanityReferenceHandler
             }
 
             if (isset($data['_type']) && $data['_type'] === 'sanity.imageAsset' && isset($data['_id'])) {
-                dd($data);
                 $data = $this->constructImageUrl($data['_id']);
             }
 

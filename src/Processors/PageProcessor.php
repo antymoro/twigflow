@@ -249,7 +249,6 @@ class PageProcessor
      */
     private function fetchGlobal(string $query)
     {
-        $url = '/data/query/production?query=' . urlencode($query);
-        return $this->apiFetcher->asyncFetchFromApi($url);
+        return $this->apiFetcher->asyncFetchFromApi($query);
     }
 }

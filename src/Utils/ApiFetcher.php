@@ -33,9 +33,9 @@ class ApiFetcher
         $this->cache = new CacheService();
     }
 
-    public function fetchFromApi(string $url, array $options = []): ?array
+    public function fetchFromApi(string $query, array $options = []): ?array
     {
-        $url = $this->apiUrl . $url;
+        $url = $this->apiUrl . urlencode($query);
         
         $cacheKey = $this->generateCacheKey($url);
         return $this->cache->get($cacheKey, function () use ($url) {
@@ -49,9 +49,9 @@ class ApiFetcher
         });
     }
 
-    public function asyncFetchFromApi(string $url, array $options = []): PromiseInterface
+    public function asyncFetchFromApi(string $query, array $options = []): PromiseInterface
     {
-        $url = $this->apiUrl . $url;
+        $url = $this->apiUrl . urlencode($query);
         return $this->client->getAsync($url);
     }
 

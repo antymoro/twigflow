@@ -17,7 +17,6 @@ class SanityApiFetcher
 
     public function fetchQuery(string $query): ?array
     {
-        $query = '/data/query/production?query=' . urlencode($query);
         return $this->apiFetcher->fetchFromApi($query);
     }
 }
