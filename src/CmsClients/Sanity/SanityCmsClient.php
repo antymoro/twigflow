@@ -57,7 +57,8 @@ class SanityCmsClient implements CmsClientInterface
         $combinedData = [
             'modules' => $modules,
             'modulesAsyncData' => $asyncData['modulesAsyncData'] ?? [],
-            'globals' => $asyncData['globals'] ?? []
+            'globals' => $asyncData['globals'] ?? [],
+            'metadata' => $asyncData['metadata'] ?? []
         ];
 
         $processedCombined = $this->dataProcessor->processDataRecursively($combinedData, $language);
@@ -82,7 +83,8 @@ class SanityCmsClient implements CmsClientInterface
         return [
             'modules' => $processedCombined['modules'] ?? [],
             'modulesAsyncData' => $processedCombined['modulesAsyncData'] ?? [],
-            'globals' => $processedCombined['globals'] ?? []
+            'globals' => $processedCombined['globals'] ?? [],
+            'metadata' => $processedCombined['metadata'] ?? []
         ];
     }
 

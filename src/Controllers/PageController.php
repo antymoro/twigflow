@@ -84,33 +84,21 @@ class PageController
      */
     private function handlePageRequest(Request $request, Response $response, string $slug, ?string $language, ?string $collection = null): Response
     {
-        $cacheMode = $_ENV['CACHE_MODE'] ?? 'processed';
         // Include $collection in the cache key for uniqueness
         $cacheKey = 'page_' . md5($slug . $language . ($collection ?? ''));
-    
-        if ($cacheMode === 'raw') {
-            // Cache raw fetched data
-            $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language, $collection) {
-                if ($collection !== null) {
-                    return $this->cmsClient->getCollectionItem($collection, $slug, $language);
-                }
-                return $this->cmsClient->getPage($slug, $language);
-            });
-            $pageData = $this->pageProcessor->processPage($pageData, $language);
-        } else {
-            // Cache processed data
-            $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language, $collection) {
-                if ($collection !== null) {
-                    $page = $this->cmsClient->getCollectionItem($collection, $slug, $language);
-                } else {
-                    $page = $this->cmsClient->getPage($slug, $language);
-                }
-                if (!$page) {
-                    throw new \Exception('Page not found');
-                }
-                return $this->pageProcessor->processPage($page, $language);
-            });
-        }
+        
+        // Cache processed data
+        $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language, $collection) {
+            if ($collection !== null) {
+                $page = $this->cmsClient->getCollectionItem($collection, $slug, $language);
+            } else {
+                $page = $this->cmsClient->getPage($slug, $language);
+            }
+            if (!$page) {
+                throw new \Exception('Page not found');
+            }
+            return $this->pageProcessor->processPage($page, $language);
+        });
     
         return $this->renderPage($request, $response, $pageData, $language);
     }
@@ -124,9 +112,10 @@ class PageController
         $queryParams = $request->getQueryParams();
         if (isset($queryParams['json']) && $queryParams['json'] === 'true') {
             $jsonData = [
+                'metadata' => $data['metadata'] ?? [],
                 'modules' => $data['modules'] ?? [],
                 'globals' => $data['globals'] ?? [],
-                'translations' => $data['translations'] ?? [],
+                'translations' => $data['translations'] ?? []
             ];
             $payload = json_encode($jsonData, JSON_PRETTY_PRINT);
             $response->getBody()->write($payload);
@@ -142,6 +131,7 @@ class PageController
 
         // Render the Twig template with data
         $html = $this->view->fetch($template, [
+            'metadata' => $data['metadata'] ?? [],
             'modules' => $data['modules'] ?? [],
             'globals' => $data['globals'] ?? [],
             'translations' => $data['translations'] ?? [],

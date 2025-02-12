@@ -36,7 +36,12 @@ class PageProcessor
      */
     public function processPage(array $pageData, ?string $language): array
     {
+        // Step 0: Separate metadata and modules.
+        $metadata = $pageData['result'] ?? [];
         $modules = $pageData['modules'] ?? [];
+
+        // Remove modules from metadata
+        unset($metadata['modules']);
 
         // Step 1: Collect all promises for modules
         $promises = $this->collectPromises($modules, $language);
@@ -57,7 +62,7 @@ class PageProcessor
             $results['globals'][$key] = $results[$key] ?? [];
             unset($results[$key]);
         }
-
+        $results['metadata'] = $metadata;
         $results['modulesAsyncData'] = [];
 
         foreach ($results as $key => $result) {
