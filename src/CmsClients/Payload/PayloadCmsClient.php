@@ -1,6 +1,6 @@
 <?php
 
-namespace App\CmsClients;
+namespace App\CmsClients\Payload;
 
 use App\Utils\ApiFetcher;
 

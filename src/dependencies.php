@@ -2,8 +2,8 @@
 
 use App\Services\CacheService;
 use App\CmsClients\CmsClientInterface;
-use App\CmsClients\PayloadCmsClient;
-use App\CmsClients\SanityCmsClient;
+use App\CmsClients\Payload\PayloadCmsClient;
+use App\CmsClients\Sanity\SanityCmsClient;
 use App\Controllers\PageController;
 use App\Controllers\CacheController;
 use App\Processors\PageProcessor;
@@ -11,7 +11,6 @@ use App\Utils\ApiFetcher;
 use Slim\Views\Twig;
 use Twig\Loader\FilesystemLoader;
 use Twig\Extension\DebugExtension;
-use GuzzleHttp\Client;
 use Dotenv\Dotenv;
 
 /**
