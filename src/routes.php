@@ -45,8 +45,8 @@ return function (App $app) {
         $collection = $config['collection'];
         $app->get($pattern, \App\Controllers\PageController::class . ':showCollectionItem')
             ->setName('page.showCollectionItem')
-            ->add(function ($request, $handler) use ($collection) {
-                return $handler->handle($request->withAttribute('collection', $collection));
+            ->add(function ($request, $handler) use ($collection, $routesConfig) {
+                return $handler->handle($request->withAttribute('collection', $collection)->withAttribute('routesConfig', $routesConfig));;
             });
     }
 };

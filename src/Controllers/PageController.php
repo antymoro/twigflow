@@ -122,11 +122,15 @@ class PageController
             return $response->withHeader('Content-Type', 'application/json');
         }
 
+        $routesConfig = $request->getAttribute('routesConfig') ?? [];
+        $collection = $request->getAttribute('collection') ?? null;
+
         $template = 'page.twig';
-        if (file_exists($this->userTemplatePath . $template)) {
-            $template = $template;
-        } else {
-            $template = $this->templatePath . $template;
+        foreach ($routesConfig as $config) {
+            if (isset($config['collection']) && $config['collection'] === $collection && isset($config['page'])) {
+                $template = 'pages/' . $config['page'] . '.twig';
+                break;
+            }
         }
 
         // Render the Twig template with data
