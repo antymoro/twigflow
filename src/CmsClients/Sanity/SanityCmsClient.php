@@ -51,8 +51,7 @@ class SanityCmsClient implements CmsClientInterface
             $allUrls = array_merge($allUrls, $urls);
         }
 
-        dd($allUrls);
-        return $response;
+        return $allUrls;
     }
 
     public function getPage(string $slug, ?string $language = null): ?array

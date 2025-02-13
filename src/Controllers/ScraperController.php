@@ -21,17 +21,8 @@ class ScraperController
     public function scrape(Request $request, Response $response, array $args): Response
     {
 
-        $documents = $this->cmsClient->getDocumentsUrls();
-        dd($documents);
-
-        // get all documents
-
-        $apiUrls = [
-            'https://api.example.com/documents',
-            // Add more API URLs as needed
-        ];
-
-        $this->scraperService->scrapeAllDocuments($apiUrls);
+        $documentsUrls = $this->cmsClient->getDocumentsUrls();
+        $this->scraperService->scrapeAllDocuments($documentsUrls);
 
         $response->getBody()->write("Scraping completed successfully.");
         return $response;

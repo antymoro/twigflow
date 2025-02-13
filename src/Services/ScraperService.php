@@ -11,6 +11,7 @@ class ScraperService
     private Client $client;
     private ContentRepository $contentRepository;
     private CmsClientInterface $cmsClient;
+    private array $collections = [];
 
     public function __construct(ContentRepository $contentRepository, CmsClientInterface $cmsClient)
     {
@@ -19,31 +20,30 @@ class ScraperService
         $this->cmsClient = $cmsClient;
     }
 
-    public function scrapeAllDocuments(array $apiUrls): void
+    public function scrapeAllDocuments(array $urls): void
     {
-        foreach ($apiUrls as $apiUrl) {
-            $documents = $this->fetchDocumentsFromApi($apiUrl);
-            foreach ($documents as $document) {
-                $url = $this->resolveUrl($document);
-                $content = $this->scrapeContent($url);
+        $this->initializeCollections();
+
+        $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
+
+        $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $baseUrl = $scheme . '://' . $_SERVER['SERVER_NAME'];
+    
+        foreach ($urls as $uri) {
+            $url = $baseUrl . '/' . ltrim($uri, '/');
+            $response = $this->client->get($url, ['http_errors' => false]);
+    
+            if ($response->getStatusCode() !== 404) {
+                $content = $this->scrapeContent($url, $supportedLanguages);
+                dd($content);
                 $this->contentRepository->saveContent($content);
+            } else {
+                error_log("404 Not Found: {$url}");
             }
         }
     }
 
-    private function fetchDocumentsFromApi(string $apiUrl): array
-    {
-        $response = $this->client->get($apiUrl);
-        return json_decode($response->getBody(), true);
-    }
-
-    private function resolveUrl(array $document): string
-    {
-        // Implement logic to resolve the real URL from the document
-        return 'https://example.com/' . $document['slug'];
-    }
-
-    private function scrapeContent(string $url): array
+    private function scrapeContent(string $url, array $supportedLanguages): array
     {
         $response = $this->client->get($url);
         $html = (string) $response->getBody();
@@ -53,12 +53,14 @@ class ScraperService
         $title = $this->extractTitle($html);
         $slug = $this->extractSlug($url);
         $type = $this->extractType($url);
+        $language = $this->extractLanguage($url, $supportedLanguages);
 
         return [
             'title' => $title,
             'slug' => $slug,
             'type' => $type,
             'content' => $content,
+            'language' => $language,
         ];
     }
 
@@ -75,7 +77,48 @@ class ScraperService
 
     private function extractType(string $url): string
     {
-        // Implement logic to determine type based on URL or other criteria
+        $path = parse_url($url, PHP_URL_PATH);
+        $segments = explode('/', trim($path, '/'));
+
+        $segment = $segments[1];
+
+
+        foreach ($this->collections as $type => $config) {
+            if ($segment == 'type') {
+                return $type;
+            }
+        }
+
         return 'page';
+    }
+
+    private function extractLanguage(string $url, array $supportedLanguages): string
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        $segments = explode('/', trim($path, '/'));
+
+        if (in_array($segments[0], $supportedLanguages)) {
+            return $segments[0];
+        }
+
+        return 'default'; // or return a default language if not found
+    }
+
+
+    private function initializeCollections(): void
+    {
+        $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
+        $collections = [];
+
+        foreach ($routesConfig as $route => $config) {
+            if (isset($config['collection'])) {
+                $collectionType = $config['collection'];
+                $cleanPath = str_replace('/{slug}', '', $route);
+                $collections[$collectionType] = ['path' => $cleanPath];
+            }
+        }
+
+        $collections['page'] = ['path' => ''];
+        $this->collections = $collections;
     }
 }
