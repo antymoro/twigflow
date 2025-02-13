@@ -44,14 +44,14 @@ class SanityCmsClient implements CmsClientInterface
         $response = $this->apiFetcher->fetchQuery('*[]{_type, slug, _id}', ['disable_cache' => true]);
         $response = $response['result'] ?? [];
 
-        $allUrls = [];
+        $allDocuments = [];
 
         foreach ($response as $document) {
-            $urls = $this->buildUrl($document, $supportedLanguages);
-            $allUrls = array_merge($allUrls, $urls);
+            $documents = $this->prepareDocument($document, $supportedLanguages);
+            $allDocuments = array_merge($allDocuments, $documents);
         }
 
-        return $allUrls;
+        return $allDocuments;
     }
 
     public function getPage(string $slug, ?string $language = null): ?array
@@ -129,21 +129,28 @@ class SanityCmsClient implements CmsClientInterface
         return $page;
     }
 
-    public function buildUrl($document, $supportedLanguages)
+    public function prepareDocument($document, $supportedLanguages)
     {
-        $urls = [];
-
+        $documents = [];
 
         if (isset($document['_type']) && isset($this->collections[$document['_type']])
         && isset($document['slug']['current']) && !str_contains($document['_id'],'drafts')) {
             $slug = $document['slug']['current'];
             foreach ($supportedLanguages as $language) {
                 $urlPrefix = $language ? '/' . $language : '';
-                $urls[] = $urlPrefix . $this->collections[$document['_type']]['path'] . '/' . $slug;
+                $url = $urlPrefix . $this->collections[$document['_type']]['path'] . '/' . $slug;
+
+                $documents[] = [
+                    'url' => $url,
+                    'type' => $document['_type'],
+                    'language' => $language,
+                    'slug' => $slug,
+                    'cms_id' => $document['_id']
+                ];
             }
         }
 
-        return $urls;
+        return $documents;
     }
 
     private function initializeCollections(): void
@@ -159,7 +166,6 @@ class SanityCmsClient implements CmsClientInterface
             }
         }
 
-        // dd($collections);
         $collections['page'] = ['path' => ''];
         $this->collections = $collections;
     }

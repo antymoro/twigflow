@@ -15,14 +15,18 @@ class ContentRepository
 
     public function saveContent(array $content): void
     {
-        $stmt = $this->db->prepare('INSERT INTO content (title, slug, type, content) VALUES (:title, :slug, :type, :content)');
+        $stmt = $this->db->prepare('INSERT INTO documents (title, slug, type, content, language, cms_id, url) VALUES (:title, :slug, :type, :content, :language, :cms_id, :url)');
         $stmt->execute([
-            ':title' => $content['title'],
+            ':title' => 'palceholder',
             ':slug' => $content['slug'],
             ':type' => $content['type'],
             ':content' => $content['content'],
+            ':language' => $content['language'],
+            ':cms_id' => $content['cms_id'],
+            ':url' => $content['url'],
         ]);
     }
+
 
     public function searchContent(string $query): array
     {

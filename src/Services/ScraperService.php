@@ -20,47 +20,47 @@ class ScraperService
         $this->cmsClient = $cmsClient;
     }
 
-    public function scrapeAllDocuments(array $urls): void
+    public function scrapeAllDocuments(array $documents): void
     {
         $this->initializeCollections();
-
-        $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
 
         $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $baseUrl = $scheme . '://' . $_SERVER['SERVER_NAME'];
     
-        foreach ($urls as $uri) {
-            $url = $baseUrl . '/' . ltrim($uri, '/');
+        foreach ($documents as $document) {
+            $url = $baseUrl . '/' . ltrim($document['url'], '/');
             $response = $this->client->get($url, ['http_errors' => false]);
     
             if ($response->getStatusCode() !== 404) {
-                $content = $this->scrapeContent($url, $supportedLanguages);
-                dd($content);
-                $this->contentRepository->saveContent($content);
+                $content = $this->scrapeContent($url);
+                $document['content'] = $content;
+
+                $this->contentRepository->saveContent($document);
             } else {
                 error_log("404 Not Found: {$url}");
             }
+
         }
+
+        dd('success');
     }
 
-    private function scrapeContent(string $url, array $supportedLanguages): array
+    private function scrapeContent(string $url): string
     {
         $response = $this->client->get($url);
         $html = (string) $response->getBody();
 
         // Extract content
         $content = strip_tags($html);
-        $title = $this->extractTitle($html);
-        $slug = $this->extractSlug($url);
-        $type = $this->extractType($url);
-        $language = $this->extractLanguage($url, $supportedLanguages);
+
+        return $content;    
 
         return [
-            'title' => $title,
-            'slug' => $slug,
-            'type' => $type,
+            'title' => $this->extractTitle($html),
+            'slug' => $this->extractSlug($url),
+            'type' => $this->extractType($url),
+            'language' => $this->extractLanguage($url, explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? '')),
             'content' => $content,
-            'language' => $language,
         ];
     }
 
