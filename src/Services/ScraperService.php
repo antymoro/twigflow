@@ -22,7 +22,8 @@ class ScraperService
 
     public function scrapeAllDocuments(array $documents): void
     {
-        $this->initializeCollections();
+
+        dd($documents);
 
         $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $baseUrl = $scheme . '://' . $_SERVER['SERVER_NAME'];

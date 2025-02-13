@@ -5,7 +5,7 @@ namespace App\CmsClients\Sanity;
 use App\CmsClients\Sanity\Components\SanityApiFetcher;
 use App\CmsClients\Sanity\Components\SanityDataProcessor;
 use App\CmsClients\Sanity\Components\SanityReferenceHandler;
-use App\CmsClients\Sanity\Components\SanityUrlBuilder;
+use App\CmsClients\Sanity\Components\DocumentsHandler;
 
 use App\CmsClients\CmsClientInterface;
 
@@ -14,15 +14,14 @@ class SanityCmsClient implements CmsClientInterface
     private SanityApiFetcher $apiFetcher;
     private SanityDataProcessor $dataProcessor;
     private SanityReferenceHandler $referenceHandler;
-    private SanityUrlBuilder $urlBuilder;
-    private array $collections = [];
+    private DocumentsHandler $documentsHandler;
 
     public function __construct(string $apiUrl)
     {
         $this->apiFetcher = new SanityApiFetcher($apiUrl);
         $this->dataProcessor = new SanityDataProcessor();
         $this->referenceHandler = new SanityReferenceHandler($this->apiFetcher, json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true));
-        $this->urlBuilder = new SanityUrlBuilder();
+        $this->documentsHandler = new DocumentsHandler();
     }
 
     public function getPages(): array
@@ -33,12 +32,6 @@ class SanityCmsClient implements CmsClientInterface
 
     public function getDocumentsUrls(): array
     {
-        if (empty($this->collections)) {
-            $this->initializeCollections();
-        }
-
-        $this->collections['page'] = ['path' => ''];
-
         $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
 
         $response = $this->apiFetcher->fetchQuery('*[]{_type, slug, _id}', ['disable_cache' => true]);
@@ -47,7 +40,7 @@ class SanityCmsClient implements CmsClientInterface
         $allDocuments = [];
 
         foreach ($response as $document) {
-            $documents = $this->prepareDocument($document, $supportedLanguages);
+            $documents = $this->documentsHandler->prepareDocument($document, $supportedLanguages);
             $allDocuments = array_merge($allDocuments, $documents);
         }
 
@@ -127,47 +120,6 @@ class SanityCmsClient implements CmsClientInterface
         $page['modules'] = $modulesArray;
 
         return $page;
-    }
-
-    public function prepareDocument($document, $supportedLanguages)
-    {
-        $documents = [];
-
-        if (isset($document['_type']) && isset($this->collections[$document['_type']])
-        && isset($document['slug']['current']) && !str_contains($document['_id'],'drafts')) {
-            $slug = $document['slug']['current'];
-            foreach ($supportedLanguages as $language) {
-                $urlPrefix = $language ? '/' . $language : '';
-                $url = $urlPrefix . $this->collections[$document['_type']]['path'] . '/' . $slug;
-
-                $documents[] = [
-                    'url' => $url,
-                    'type' => $document['_type'],
-                    'language' => $language,
-                    'slug' => $slug,
-                    'cms_id' => $document['_id']
-                ];
-            }
-        }
-
-        return $documents;
-    }
-
-    private function initializeCollections(): void
-    {
-        $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
-        $collections = [];
-
-        foreach ($routesConfig as $route => $config) {
-            if (isset($config['collection'])) {
-                $collectionType = $config['collection'];
-                $cleanPath = str_replace('/{slug}', '', $route);
-                $collections[$collectionType] = ['path' => $cleanPath];
-            }
-        }
-
-        $collections['page'] = ['path' => ''];
-        $this->collections = $collections;
     }
 
 }
