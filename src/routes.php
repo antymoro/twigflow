@@ -4,6 +4,8 @@ namespace App;
 
 use Slim\App;
 use App\Middleware\LanguageMiddleware;
+use App\Controllers\ScraperController;
+use App\Controllers\SearchController;
 
 return function (App $app) {
     // Load supported languages from environment
@@ -23,6 +25,14 @@ return function (App $app) {
     // Route to clear cache without language prefix
     $app->get('/clear-cache', \App\Controllers\CacheController::class . ':clearCache')
         ->setName('cache.clear');
+
+    // Route to trigger scraping process
+    $app->get('/scrape', ScraperController::class . ':scrape')
+    ->setName('scrape');
+
+    // Route to handle search requests
+    $app->get('/search', SearchController::class . ':search')
+        ->setName('search');
 
     // Route to handle dynamic pages using the PageController with slug
     $app->get('/{slug}', \App\Controllers\PageController::class . ':show')

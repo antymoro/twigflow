@@ -15,8 +15,8 @@ class SanityApiFetcher
         $this->apiFetcher = new ApiFetcher($this->apiUrl);
     }
 
-    public function fetchQuery(string $query): ?array
+    public function fetchQuery(string $query, $options=[]): ?array
     {
-        return $this->apiFetcher->fetchFromApi($query);
+        return $this->apiFetcher->fetchFromApi($query, $options);
     }
 }

@@ -15,6 +15,7 @@ class SanityCmsClient implements CmsClientInterface
     private SanityDataProcessor $dataProcessor;
     private SanityReferenceHandler $referenceHandler;
     private SanityUrlBuilder $urlBuilder;
+    private array $collections = [];
 
     public function __construct(string $apiUrl)
     {
@@ -28,6 +29,30 @@ class SanityCmsClient implements CmsClientInterface
     {
         $response = $this->apiFetcher->fetchQuery('*[_type == "page"]');
         return $response['result'] ?? [];
+    }
+
+    public function getDocumentsUrls(): array
+    {
+        if (empty($this->collections)) {
+            $this->initializeCollections();
+        }
+
+        $this->collections['page'] = ['path' => ''];
+
+        $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
+
+        $response = $this->apiFetcher->fetchQuery('*[]{_type, slug, _id}', ['disable_cache' => true]);
+        $response = $response['result'] ?? [];
+
+        $allUrls = [];
+
+        foreach ($response as $document) {
+            $urls = $this->buildUrl($document, $supportedLanguages);
+            $allUrls = array_merge($allUrls, $urls);
+        }
+
+        dd($allUrls);
+        return $response;
     }
 
     public function getPage(string $slug, ?string $language = null): ?array
@@ -103,6 +128,41 @@ class SanityCmsClient implements CmsClientInterface
         $page['modules'] = $modulesArray;
 
         return $page;
+    }
+
+    public function buildUrl($document, $supportedLanguages)
+    {
+        $urls = [];
+
+
+        if (isset($document['_type']) && isset($this->collections[$document['_type']])
+        && isset($document['slug']['current']) && !str_contains($document['_id'],'drafts')) {
+            $slug = $document['slug']['current'];
+            foreach ($supportedLanguages as $language) {
+                $urlPrefix = $language ? '/' . $language : '';
+                $urls[] = $urlPrefix . $this->collections[$document['_type']]['path'] . '/' . $slug;
+            }
+        }
+
+        return $urls;
+    }
+
+    private function initializeCollections(): void
+    {
+        $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
+        $collections = [];
+
+        foreach ($routesConfig as $route => $config) {
+            if (isset($config['collection'])) {
+                $collectionType = $config['collection'];
+                $cleanPath = str_replace('/{slug}', '', $route);
+                $collections[$collectionType] = ['path' => $cleanPath];
+            }
+        }
+
+        // dd($collections);
+        $collections['page'] = ['path' => ''];
+        $this->collections = $collections;
     }
 
 }

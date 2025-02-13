@@ -1,13 +1,24 @@
 <?php
 
 use App\Services\CacheService;
+use App\Services\DatabaseService;
+use App\Services\ScraperService;
+
 use App\CmsClients\CmsClientInterface;
 use App\CmsClients\Payload\PayloadCmsClient;
 use App\CmsClients\Sanity\SanityCmsClient;
+
 use App\Controllers\PageController;
-use App\Controllers\CacheController;
 use App\Processors\PageProcessor;
+
+use App\Controllers\CacheController;
+use App\Controllers\ScraperController;
+use App\Controllers\SearchController;
+
+use App\Repositories\ContentRepository;
+
 use App\Utils\ApiFetcher;
+
 use Slim\Views\Twig;
 use Twig\Loader\FilesystemLoader;
 use Twig\Extension\DebugExtension;
@@ -111,4 +122,34 @@ return [
         // Create and return a new CacheController instance with dependencies
         return new CacheController($container->get(CacheService::class));
     },
+
+    // Register DatabaseService
+    DatabaseService::class => \DI\create(DatabaseService::class),
+
+    // Register ContentRepository
+    ContentRepository::class => function ($container) {
+        return new ContentRepository($container->get(DatabaseService::class)->getConnection());
+    },
+
+    // Register ScraperService
+    ScraperService::class => function ($container) {
+        return new ScraperService(
+            $container->get(ContentRepository::class),
+            $container->get(CmsClientInterface::class)
+        );
+    },
+
+    // Register ScraperController
+    ScraperController::class => function ($container) {
+        return new ScraperController(
+            $container->get(CmsClientInterface::class),
+            $container->get(ScraperService::class)
+        );
+    },
+
+    // Register SearchController
+    SearchController::class => function ($container) {
+        return new SearchController($container->get(DatabaseService::class));
+    },
+
 ];

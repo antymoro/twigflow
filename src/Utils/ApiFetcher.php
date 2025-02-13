@@ -36,8 +36,13 @@ class ApiFetcher
     public function fetchFromApi(string $query, array $options = []): ?array
     {
         $url = $this->apiUrl . urlencode($query);
-        
         $cacheKey = $this->generateCacheKey($url);
+
+        if (isset($options['disable_cache']) && $options['disable_cache'] === true) {
+            $response = $this->client->get($url);
+            return json_decode($response->getBody(), true);
+        }
+
         return $this->cache->get($cacheKey, function () use ($url) {
             try {
                 $response = $this->client->get($url);
