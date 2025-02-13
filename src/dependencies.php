@@ -147,9 +147,10 @@ return [
         );
     },
 
-    // Register SearchController
     SearchController::class => function ($container) {
-        return new SearchController($container->get(DatabaseService::class));
+        return new SearchController(
+            $container->get(ContentRepository::class)
+        );
     },
 
 ];

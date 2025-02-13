@@ -5,6 +5,7 @@ namespace App\Services;
 use GuzzleHttp\Client;
 use App\Repositories\ContentRepository;
 use App\CmsClients\CmsClientInterface;
+use GuzzleHttp\Exception\RequestException;
 
 class ScraperService
 {
@@ -48,6 +49,7 @@ class ScraperService
     {
         foreach ($documents as $document) {
             $this->contentRepository->saveJob([
+                'title' => $document['title'],
                 'url' => $document['url'],
                 'type' => $document['type'],
                 'language' => $document['language'],
@@ -63,14 +65,19 @@ class ScraperService
         $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $baseUrl = $scheme . '://' . $_SERVER['SERVER_NAME'];
         $url = $baseUrl . '/' . ltrim($document['url'], '/');
-        $response = $this->client->get($url, ['http_errors' => false]);
 
-        if ($response->getStatusCode() !== 404) {
-            $content = $this->scrapeContent($url);
-            $document['content'] = $content;
-            $this->contentRepository->saveContent($document);
-        } else {
-            error_log("404 Not Found: {$url}");
+        try {
+            $response = $this->client->get($url, ['http_errors' => false]);
+
+            if ($response->getStatusCode() !== 404) {
+                $content = $this->scrapeContent($url);
+                $document['content'] = $content;
+                $this->contentRepository->saveContent($document);
+            } else {
+                error_log("Scraping URL - 404 Not Found: {$url}");
+            }
+        } catch (RequestException $e) {
+            error_log("Error scraping URL {$url}: " . $e->getMessage());
         }
     }
 
@@ -79,9 +86,40 @@ class ScraperService
         $response = $this->client->get($url);
         $html = (string) $response->getBody();
 
-        // Extract content
-        $content = strip_tags($html);
+        $html=str_replace('<br>',' ',$html);
+        $html=str_replace('<p>',' ',$html);
+        $html=str_replace('</p>',' ',$html);
+        $html=str_replace('<div',' ~~~ <div',$html);
 
-        return $content;
+        // remove sr-only spans
+        while (strpos($html,'<span class="sr-only">'))
+        {
+            $i=strpos($html,'<span class="sr-only">');
+            $j=strpos($html,'</span>',$i);
+            if ($j>$i) $html=substr($html,0,$i).substr($html,$j+7);
+                else break;
+        }
+
+        // remove all tags
+        $html=strip_tags($html);
+
+        // remove double spaces and new lines
+        for ($i=1;$i<10;$i++)
+            $html=str_replace(chr(10).chr(10),chr(10),$html);
+        for ($i=1;$i<10;$i++)
+            $html=str_replace('     ',' ',$html);
+        for ($i=1;$i<10;$i++)
+            $html=str_replace('  ',' ',$html);
+        for ($i=1;$i<10;$i++)
+            $html=str_replace(chr(10).' ',chr(10),$html);
+        for ($i=1;$i<10;$i++)
+            $html=str_replace(chr(10).chr(10),chr(10),$html);
+
+        $html=explode(chr(10),$html);
+        foreach ($html as $k=>$v)
+            if (is_numeric($v) || strlen($v)<3) unset($html[$k]);
+        $html=implode(chr(10),$html);
+
+        return $html;
     }
 }

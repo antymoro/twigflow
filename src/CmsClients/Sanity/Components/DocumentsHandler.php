@@ -22,7 +22,14 @@ class DocumentsHandler
                 $urlPrefix = $language ? '/' . $language : '';
                 $url = $urlPrefix . $this->collections[$document['_type']]['path'] . '/' . $slug;
 
+                $title = $document['title'][$language] ?? null;
+
+                if (!$title) {
+                    continue;
+                }
+
                 $documents[] = [
+                    'title' => $title,
                     'url' => $url,
                     'type' => $document['_type'],
                     'language' => $language,

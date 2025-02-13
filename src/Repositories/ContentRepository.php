@@ -17,7 +17,7 @@ class ContentRepository
     {
         $stmt = $this->db->prepare('INSERT INTO documents (title, slug, type, content, language, cms_id, url) VALUES (:title, :slug, :type, :content, :language, :cms_id, :url)');
         $stmt->execute([
-            ':title' => 'palceholder',
+            ':title' => $content['title'],
             ':slug' => $content['slug'],
             ':type' => $content['type'],
             ':content' => $content['content'],
@@ -36,8 +36,9 @@ class ContentRepository
 
         if ($count == 0) {
             // Insert the new job if it doesn't already exist
-            $stmt = $this->db->prepare('INSERT INTO jobs (url, type, language, slug, cms_id, status) VALUES (:url, :type, :language, :slug, :cms_id, :status)');
+            $stmt = $this->db->prepare('INSERT INTO jobs (title, url, type, language, slug, cms_id, status) VALUES (:title, :url, :type, :language, :slug, :cms_id, :status)');
             $stmt->execute([
+                ':title' => $job['title'],
                 ':url' => $job['url'],
                 ':type' => $job['type'],
                 ':language' => $job['language'],
@@ -60,6 +61,41 @@ class ContentRepository
     public function getPendingJobs($limit = 5): array
     {
         $stmt = $this->db->query('SELECT * FROM jobs WHERE status = "pending" LIMIT ' . $limit);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function searchContent(string $query, ?string $language = null): array
+    {
+        if ($language) {
+            $stmt = $this->db->prepare('
+                SELECT *, 
+                CASE 
+                    WHEN title LIKE :query THEN 2 
+                    ELSE 1 
+                END AS relevance 
+                FROM documents 
+                WHERE (title LIKE :query OR content LIKE :query) AND language = :language 
+                ORDER BY relevance DESC
+            ');
+            $stmt->execute([
+                ':query' => '%' . $query . '%',
+                ':language' => $language,
+            ]);
+        } else {
+            $stmt = $this->db->prepare('
+                SELECT *, 
+                CASE 
+                    WHEN title LIKE :query THEN 2 
+                    ELSE 1 
+                END AS relevance 
+                FROM documents 
+                WHERE title LIKE :query OR content LIKE :query 
+                ORDER BY relevance DESC
+            ');
+            $stmt->execute([
+                ':query' => '%' . $query . '%',
+            ]);
+        }
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

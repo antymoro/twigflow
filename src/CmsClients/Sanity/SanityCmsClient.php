@@ -34,7 +34,7 @@ class SanityCmsClient implements CmsClientInterface
     {
         $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
 
-        $response = $this->apiFetcher->fetchQuery('*[]{_type, slug, _id}', ['disable_cache' => true]);
+        $response = $this->apiFetcher->fetchQuery('*[]{_type, slug, _id, title}', ['disable_cache' => true]);
         $response = $response['result'] ?? [];
 
         $allDocuments = [];
