@@ -27,6 +27,9 @@ return function (App $app) {
         ->setName('cache.clear');
 
     // Route to trigger scraping process
+    // Route to handle CMS webhook for document updates
+    $app->post('/api/document-updated', [ScraperController::class, 'handleDocumentUpdatedWebhook'])
+        ->setName('webhook.documentUpdated');
     $app->get('/api/process-jobs', [ScraperController::class, 'processPendingJobs'])
         ->setName('scraper.processPendingJobs');
     $app->get('/api/make-jobs', [ScraperController::class, 'savePendingJobs'])

@@ -30,6 +30,13 @@ class SanityCmsClient implements CmsClientInterface
         return $response['result'] ?? [];
     }
 
+    public function getDocumentById(string $documentId) : array {
+        $query = '*[_id == "' . $documentId . '"][0]';
+        $response = $this->apiFetcher->fetchQuery($query);
+        dd($response);
+        return $response['result'] ?? [];
+    }
+
     public function getDocumentsUrls(): array
     {
         $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));

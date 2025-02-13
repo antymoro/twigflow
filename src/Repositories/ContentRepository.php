@@ -27,6 +27,12 @@ class ContentRepository
         ]);
     }
 
+    public function deleteContentById(string $cmsId): void
+    {
+        $stmt = $this->db->prepare('DELETE FROM documents WHERE cms_id = :cms_id');
+        $stmt->execute([':cms_id' => $cmsId]);
+    }
+
     public function saveJob(array $job): void
     {
         // Check if a job with the same cms_id already exists

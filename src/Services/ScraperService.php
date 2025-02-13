@@ -81,6 +81,22 @@ class ScraperService
         }
     }
 
+    public function scrapeDocumentById(string $documentId): void
+    {
+        $document = $this->cmsClient->getDocumentById($documentId);
+
+        if ($document) {
+            $this->scrapeDocument($document);
+        } else {
+            error_log("Document not found: {$documentId}");
+        }
+    }
+
+    public function deleteDocumentById(string $documentId): void
+    {
+        $this->contentRepository->deleteContentById($documentId);
+    }
+
     private function scrapeContent(string $url): string
     {
         $response = $this->client->get($url);
