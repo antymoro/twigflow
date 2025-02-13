@@ -2,15 +2,15 @@
 
 namespace App\Controllers;
 
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Services\ScraperService;
 use App\CmsClients\CmsClientInterface;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ScraperController
 {
-    private CmsClientInterface $cmsClient;
     private ScraperService $scraperService;
+    private CmsClientInterface $cmsClient;
 
     public function __construct(CmsClientInterface $cmsClient, ScraperService $scraperService)
     {
@@ -18,13 +18,19 @@ class ScraperController
         $this->scraperService = $scraperService;
     }
 
-    public function scrape(Request $request, Response $response, array $args): Response
+    public function processPendingJobs(Request $request, Response $response): Response
     {
-
-        $documentsUrls = $this->cmsClient->getDocumentsUrls();
-        $this->scraperService->scrapeAllDocuments($documentsUrls);
-
-        $response->getBody()->write("Scraping completed successfully.");
-        return $response;
+        $this->scraperService->processPendingJobs();
+        $response->getBody()->write('Job processing completed successfully.');
+        return $response->withStatus(200);
     }
+
+    public function savePendingJobs(Request $request, Response $response): Response
+    {
+        $documents = $this->cmsClient->getDocumentsUrls();
+        $this->scraperService->savePendingJobs($documents);
+        $response->getBody()->write('Jobs saving completed successfully.');
+        return $response->withStatus(200);
+    }
+
 }

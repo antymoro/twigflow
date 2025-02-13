@@ -22,28 +22,56 @@ class ScraperService
 
     public function scrapeAllDocuments(array $documents): void
     {
+        foreach ($documents as $document) {
+            $this->contentRepository->saveJob([
+                'url' => $document['url'],
+                'type' => $document['type'],
+                'language' => $document['language'],
+                'slug' => $document['slug'],
+                'cms_id' => $document['cms_id'],
+                'status' => 'pending',
+            ]);
+        }
+    }
 
-        dd($documents);
+    public function processPendingJobs(): void
+    {
+        $jobs = $this->contentRepository->getPendingJobs();
 
+        foreach ($jobs as $job) {
+            $this->scrapeDocument($job);
+            $this->contentRepository->updateJobStatus($job['id'], 'completed');
+        }
+    }
+
+    public function savePendingJobs(array $documents): void
+    {
+        foreach ($documents as $document) {
+            $this->contentRepository->saveJob([
+                'url' => $document['url'],
+                'type' => $document['type'],
+                'language' => $document['language'],
+                'slug' => $document['slug'],
+                'cms_id' => $document['cms_id'],
+                'status' => 'pending',
+            ]);
+        }
+    }
+
+    public function scrapeDocument(array $document): void
+    {
         $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $baseUrl = $scheme . '://' . $_SERVER['SERVER_NAME'];
-    
-        foreach ($documents as $document) {
-            $url = $baseUrl . '/' . ltrim($document['url'], '/');
-            $response = $this->client->get($url, ['http_errors' => false]);
-    
-            if ($response->getStatusCode() !== 404) {
-                $content = $this->scrapeContent($url);
-                $document['content'] = $content;
+        $url = $baseUrl . '/' . ltrim($document['url'], '/');
+        $response = $this->client->get($url, ['http_errors' => false]);
 
-                $this->contentRepository->saveContent($document);
-            } else {
-                error_log("404 Not Found: {$url}");
-            }
-
+        if ($response->getStatusCode() !== 404) {
+            $content = $this->scrapeContent($url);
+            $document['content'] = $content;
+            $this->contentRepository->saveContent($document);
+        } else {
+            error_log("404 Not Found: {$url}");
         }
-
-        dd('success');
     }
 
     private function scrapeContent(string $url): string
@@ -54,72 +82,6 @@ class ScraperService
         // Extract content
         $content = strip_tags($html);
 
-        return $content;    
-
-        return [
-            'title' => $this->extractTitle($html),
-            'slug' => $this->extractSlug($url),
-            'type' => $this->extractType($url),
-            'language' => $this->extractLanguage($url, explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? '')),
-            'content' => $content,
-        ];
-    }
-
-    private function extractTitle(string $html): string
-    {
-        preg_match('/<title>(.*?)<\/title>/', $html, $matches);
-        return $matches[1] ?? 'No Title';
-    }
-
-    private function extractSlug(string $url): string
-    {
-        return basename(parse_url($url, PHP_URL_PATH));
-    }
-
-    private function extractType(string $url): string
-    {
-        $path = parse_url($url, PHP_URL_PATH);
-        $segments = explode('/', trim($path, '/'));
-
-        $segment = $segments[1];
-
-
-        foreach ($this->collections as $type => $config) {
-            if ($segment == 'type') {
-                return $type;
-            }
-        }
-
-        return 'page';
-    }
-
-    private function extractLanguage(string $url, array $supportedLanguages): string
-    {
-        $path = parse_url($url, PHP_URL_PATH);
-        $segments = explode('/', trim($path, '/'));
-
-        if (in_array($segments[0], $supportedLanguages)) {
-            return $segments[0];
-        }
-
-        return 'default'; // or return a default language if not found
-    }
-
-
-    private function initializeCollections(): void
-    {
-        $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
-        $collections = [];
-
-        foreach ($routesConfig as $route => $config) {
-            if (isset($config['collection'])) {
-                $collectionType = $config['collection'];
-                $cleanPath = str_replace('/{slug}', '', $route);
-                $collections[$collectionType] = ['path' => $cleanPath];
-            }
-        }
-
-        $collections['page'] = ['path' => ''];
-        $this->collections = $collections;
+        return $content;
     }
 }

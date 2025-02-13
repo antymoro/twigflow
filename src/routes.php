@@ -27,8 +27,15 @@ return function (App $app) {
         ->setName('cache.clear');
 
     // Route to trigger scraping process
-    $app->get('/scrape', ScraperController::class . ':scrape')
-    ->setName('scrape');
+    $app->get('/process-jobs', [ScraperController::class, 'processPendingJobs'])
+        ->setName('scraper.processPendingJobs');
+    $app->get('/make-jobs', [ScraperController::class, 'savePendingJobs'])
+        ->setName('scraper.savePendingJobs');
+
+    // // Route to trigger scraping process
+    // $app->get('/process-jobs', \App\Controllers\ScraperController::class, 'processPendingJobs');
+    // $app->get('/make-jobs', \App\Controllers\ScraperController::class, 'savePendingJobs');
+
 
     // Route to handle search requests
     $app->get('/search', SearchController::class . ':search')
