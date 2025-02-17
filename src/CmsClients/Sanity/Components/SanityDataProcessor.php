@@ -54,15 +54,37 @@ class SanityDataProcessor
     private function convertBlocksToHtml(array $data): string
     {
         $html = '';
+        $listStack = [];
+
         foreach ($data as $item) {
             if (is_array($item)) {
                 if (isset($item['_type']) && $item['_type'] === 'block') {
-                    $html .= BlockContent::toHtml($item);
+                    if (isset($item['listItem'])) {
+                        $listType = $item['listItem'] === 'bullet' ? 'ul' : 'ol';
+                        if (empty($listStack) || end($listStack) !== $listType) {
+                            if (!empty($listStack)) {
+                                $html .= '</' . array_pop($listStack) . '>';
+                            }
+                            $html .= '<' . $listType . '>';
+                            $listStack[] = $listType;
+                        }
+                        $html .= '<li>' . BlockContent::toHtml($item) . '</li>';
+                    } else {
+                        while (!empty($listStack)) {
+                            $html .= '</' . array_pop($listStack) . '>';
+                        }
+                        $html .= BlockContent::toHtml($item);
+                    }
                 } else {
                     $html .= $this->convertBlocksToHtml($item);
                 }
             }
         }
+
+        while (!empty($listStack)) {
+            $html .= '</' . array_pop($listStack) . '>';
+        }
+
         return $html;
     }
 
