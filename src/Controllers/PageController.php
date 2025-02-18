@@ -85,7 +85,9 @@ class PageController
     private function handlePageRequest(Request $request, Response $response, string $slug, ?string $language, ?string $collection = null): Response
     {
         // Include $collection in the cache key for uniqueness
-        $cacheKey = 'page_' . md5($slug . $language . ($collection ?? ''));
+        $queryParams = $request->getQueryParams();
+        $queryString = http_build_query($queryParams);
+        $cacheKey = 'page_' . md5($slug . $language . ($collection ?? '') . $queryString);
 
         $routesConfig = $request->getAttribute('routesConfig') ?? [];
 

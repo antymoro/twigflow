@@ -12,7 +12,6 @@ use App\Pages\Manager\PageProcessorInterface;
 class DataProcessor
 {
     private ApiFetcher $apiFetcher;
-    private CacheService $cacheService;
     private CmsClientInterface $cmsClient;
     private array $processors = [];
     private $pageProcessor;
@@ -23,26 +22,30 @@ class DataProcessor
         CmsClientInterface $cmsClient
     ) {
         $this->apiFetcher   = $apiFetcher;
-        $this->cacheService = $cacheService;
         $this->cmsClient    = $cmsClient;
     }
 
     public function processPage(array $pageData, string $pageType, ?string $language): array
     {
+        // Step 1: Separate metadata and modules from the page data
         $metadata = $pageData['result'] ?? [];
         $modules = $pageData['modules'] ?? [];
         unset($metadata['modules']);
 
+        // Step 2: Collect promises for the page and the modules
         $promises = $this->collectPromises($modules, $language, $pageType, $metadata);
 
+        // Step 3: Collect global promises
         $globalsConfig = json_decode(file_get_contents(BASE_PATH . '/application/globals.json'), true);
         foreach ($globalsConfig as $key => $global) {
             $promises[$key] = $this->fetchGlobal($global['query']);
         }
 
+        // Step 4: Wait for all promises to resolve
         $results = Utils::settle($promises)->wait();
         $results = $this->flattenResults($results);
 
+        // Step 5: Tidy up the results
         $results['globals'] = [];
         foreach ($globalsConfig as $key => $global) {
             $results['globals'][$key] = $results[$key] ?? [];
@@ -61,10 +64,12 @@ class DataProcessor
             }
         }
 
+        // Step 6: Process the data using the CMS client
         $pageData = $this->cmsClient->processData($modules, $globalsConfig, $results, $language);
         $modules = $this->processModules($pageData, $language);
         $pageData['modules'] = $modules;
 
+        // Step 7: Add translations
         $staticTranslations = json_decode(file_get_contents(BASE_PATH . '/application/translations.json'), true);
         $pageData['translations'] = $this->parseTranslations($staticTranslations, $language);
 
@@ -72,6 +77,7 @@ class DataProcessor
             $pageData['globals'][$key] = $pageData['globals'][$key] ?? [];
         }
 
+        // Step 8: Process the page using the page processor if available
         if (isset($this->pageprocessor)) {
             $pageData['metadata'] = $this->pageProcessor->process($pageData['metadata'], $pageData['metadata']);
         }
