@@ -5,6 +5,7 @@ namespace App\Utils;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Promise\Create;
 use App\Services\CacheService;
 
 class ApiFetcher
@@ -15,7 +16,6 @@ class ApiFetcher
 
     public function __construct(string $baseUri)
     {
-
         $this->apiUrl = rtrim($baseUri, '/');
 
         $apiKey = $_ENV['API_KEY'] ?? null;
@@ -57,7 +57,23 @@ class ApiFetcher
     public function asyncFetchFromApi(string $query, array $options = []): PromiseInterface
     {
         $url = $this->apiUrl . urlencode($query);
-        return $this->client->getAsync($url);
+        $cacheKey = $this->generateCacheKey($url);
+
+        if (isset($options['disable_cache']) && $options['disable_cache'] === true) {
+            return $this->client->getAsync($url);
+        }
+
+        $existingValue = $this->cache->get($cacheKey, fn() => false);
+
+        if ($existingValue !== false) {
+            return Create::promiseFor($existingValue);
+        } else {
+            return $this->client->getAsync($url)->then(function ($response) use ($cacheKey) {
+                $data = json_decode($response->getBody()->getContents(), true);
+                $this->cache->set($cacheKey, $data);
+                return $data;
+            });
+        }
     }
 
     private function generateCacheKey(string $url): string

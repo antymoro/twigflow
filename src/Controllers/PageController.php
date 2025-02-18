@@ -7,7 +7,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use App\CmsClients\CmsClientInterface;
 use App\Utils\HtmlUpdater;
-use App\Processors\PageProcessor;
+use App\Processors\DataProcessor;
 use App\Services\CacheService;
 
 class PageController
@@ -16,22 +16,22 @@ class PageController
     private CmsClientInterface $cmsClient;
     private string $templatePath;
     private string $userTemplatePath;
-    private PageProcessor $pageProcessor;
+    private DataProcessor $dataProcessor;
     private CacheService $cacheService;
 
     /**
      * Constructor to initialize dependencies.
      *
      * @param Twig $view
-     * @param PageProcessor $pageProcessor
+     * @param DataProcessor $dataProcessor
      * @param CmsClientInterface $cmsClient
      * @param CacheService $cacheService
      * @param string $templatePath
      */
-    public function __construct(Twig $view, PageProcessor $pageProcessor, CmsClientInterface $cmsClient, CacheService $cacheService, string $templatePath = 'src/views/')
+    public function __construct(Twig $view, DataProcessor $dataProcessor, CmsClientInterface $cmsClient, CacheService $cacheService, string $templatePath = 'src/views/')
     {
         $this->view = $view;
-        $this->pageProcessor = $pageProcessor;
+        $this->dataProcessor = $dataProcessor;
         $this->cmsClient = $cmsClient;
         $this->cacheService = $cacheService;
         $this->templatePath = $templatePath;
@@ -86,9 +86,18 @@ class PageController
     {
         // Include $collection in the cache key for uniqueness
         $cacheKey = 'page_' . md5($slug . $language . ($collection ?? ''));
+
+        $routesConfig = $request->getAttribute('routesConfig') ?? [];
+
+        $pageType = 'page';
+        foreach ($routesConfig as $config) {
+            if (isset($config['collection']) && $config['collection'] === $collection && isset($config['page'])) {
+                $pageType = $config['page'];
+            }
+        }
         
         // Cache processed data
-        $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language, $collection) {
+        $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language, $collection, $pageType) {
             if ($collection !== null) {
                 $page = $this->cmsClient->getCollectionItem($collection, $slug, $language);
             } else {
@@ -97,7 +106,7 @@ class PageController
             if (!$page) {
                 throw new \Exception('Page not found');
             }
-            return $this->pageProcessor->processPage($page, $language);
+            return $this->dataProcessor->processPage($page, $pageType, $language);
         });
     
         return $this->renderPage($request, $response, $pageData, $language);

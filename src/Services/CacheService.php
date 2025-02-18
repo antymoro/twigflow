@@ -22,14 +22,12 @@ class CacheService
         $this->defaultExpireTime = (int) ($_ENV['CACHE_EXPIRE_TIME'] ?? 3600);
     }
 
-
     public function get(string $key, callable $callback, ?int $expiresAfter = null)
     {
         // Bypass caching if we are not in production
         if (APP_ENV !== 'production') {
             return $callback();
         }
-
 
         $expiresAfter = $expiresAfter ?? $this->defaultExpireTime;
 
@@ -41,6 +39,22 @@ class CacheService
             }
             return $callback();
         });
+    }
+
+    public function set(string $key, $value, ?int $expiresAfter = null): bool
+    {
+        $expiresAfter = $expiresAfter ?? $this->defaultExpireTime;
+
+        $item = $this->cache->getItem($key);
+        $item->set($value);
+
+        if ($expiresAfter > 0) {
+            $item->expiresAfter($expiresAfter);
+        } else {
+            $item->expiresAfter(null); // Never expire
+        }
+
+        return $this->cache->save($item);
     }
 
     public function clear(string $key): bool

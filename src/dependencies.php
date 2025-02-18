@@ -9,7 +9,7 @@ use App\CmsClients\Payload\PayloadCmsClient;
 use App\CmsClients\Sanity\SanityCmsClient;
 
 use App\Controllers\PageController;
-use App\Processors\PageProcessor;
+use App\Processors\DataProcessor;
 
 use App\Controllers\CacheController;
 use App\Controllers\ScraperController;
@@ -97,9 +97,9 @@ return [
         return new ApiFetcher($baseUri);
     },
 
-    // Register PageProcessor
-    PageProcessor::class => function ($container) {
-        return new PageProcessor(
+    // Register DataProcessor
+    DataProcessor::class => function ($container) {
+        return new DataProcessor(
             $container->get(ApiFetcher::class),
             $container->get(CacheService::class),
             $container->get(CmsClientInterface::class)
@@ -111,7 +111,7 @@ return [
         // Create and return a new PageController instance with dependencies
         return new PageController(
             $container->get(Twig::class),
-            $container->get(PageProcessor::class),
+            $container->get(DataProcessor::class),
             $container->get(CmsClientInterface::class),
             $container->get(CacheService::class)
         );
