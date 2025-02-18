@@ -16,17 +16,35 @@ class SanityDataProcessor
             }
 
             switch ($data['_type'] ?? null) {
+                
                 case 'localeString':
                     return $language && isset($data[$language]) ? $data[$language] : $data;
+
                 case 'localeText':
                     return $language && isset($data[$language]) ? $data[$language] : $data;
+
                 case 'localeBlockContent':
-                    return $this->processHtmlBlockModule($data);
+                    $submodules = $this->processHtmlBlockModule($data, $language);
+                    foreach ($submodules as &$submodule) {
+                        if ($submodule['type'] === 'text') {
+                            $submodule['content'] = $this->convertBlocksToHtml($submodule['content']);
+                        } elseif ($submodule['type'] === 'image') {
+                            $submodule['content']['caption'] = $submodule['content']['caption'][$language] ?? '';
+                            $submodule['content']['alt'] = $submodule['content']['alt'][$language] ?? '';
+                        }
+                    }
+
+                    return [
+                        'type' => 'text',
+                        'submodules' => $submodules
+                    ];
+
                 case 'reference':
                     if (isset($data['_ref']) && !str_contains($data['_ref'], 'image-')) {
                         $this->referenceIds[] = $data['_ref'];
                     }
                     return $data;
+
                 default:
                     $result = [];
                     foreach ($data as $key => $value) {
@@ -41,14 +59,46 @@ class SanityDataProcessor
         return $data;
     }
 
-    public function processReferencesRecursively($references, $language) {
-        return [];
-    }
-
-    public function processHtmlBlockModule(array $module): array
+    public function processHtmlBlockModule(array $module, ?string $language=null): array
     {
-        $html = $this->convertBlocksToHtml($module);
-        return ['text' => $html, 'type' => 'text', '_type' => 'text'];
+        $submodules = [];
+        $currentBlocks = [];
+
+        if ($language) {
+            $module = $module[$language] ?? [];
+        }
+
+        foreach ($module as $item) {
+            if (is_array($item)) {
+                switch ($item['_type'] ?? null) {
+                    case 'block':
+                        $currentBlocks[] = $item;
+                        break;
+                    case 'imageBlock':
+                        if (!empty($currentBlocks)) {
+                            $submodules[] = [
+                                'type' => 'text',
+                                'content' => $currentBlocks
+                            ];
+                            $currentBlocks = [];
+                        }
+                        $submodules[] = [
+                            'type' => 'image',
+                            'content' => $item
+                        ];
+                        break;
+                }
+            }
+        }
+
+        if (!empty($currentBlocks)) {
+            $submodules[] = [
+                'type' => 'text',
+                'content' => $currentBlocks
+            ];
+        }
+
+        return $submodules;
     }
 
     private function convertBlocksToHtml(array $data): string
@@ -91,5 +141,22 @@ class SanityDataProcessor
     public function getReferenceIds(): array
     {
         return $this->referenceIds;
+    }
+
+    private function findSubmodulesLevel(array $data): ?array
+    {
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                if (isset($value[0]['_type']) && in_array($value[0]['_type'], ['block', 'imageBlock'])) {
+                    return $data[$key];
+                } else {
+                    $result = $this->findSubmodulesLevel($value);
+                    if ($result !== null) {
+                        return $result;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }
