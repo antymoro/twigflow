@@ -15,14 +15,12 @@ class PayloadCmsClient implements CmsClientInterface
     public function __construct(string $apiUrl)
     {
         $this->apiUrl = $apiUrl;
-        $this->apiFetcher = new ApiFetcher($this->apiUrl);
+        $this->apiFetcher = new ApiFetcher($this->apiUrl, $this);
     }
 
     public function getPages(): array
     {
-        $url = $this->apiUrl . '/pages';
-        $response = $this->apiFetcher->fetchFromApi($url);
-        return $response['docs'] ?? [];
+        return [];
     }
 
     public function getPage(string $slug, ?string $language = null): ?array
@@ -39,8 +37,7 @@ class PayloadCmsClient implements CmsClientInterface
 
     public function getScaffold(string $global): ?array
     {
-        $url = $this->apiUrl . '/globals/' . $global;
-        return $this->apiFetcher->fetchFromApi($url);
+        return [];
     }
 
     private function getPageBySlug(string $slug, ?string $language = null): ?array
@@ -143,6 +140,11 @@ class PayloadCmsClient implements CmsClientInterface
             'globals' => $processedCombined['globals'] ?? [],
             'metadata' => $processedCombined['metadata'] ?? []
         ];
+    }
+
+    public function urlBuilder(string $baseUrl, string $query, array $options): string
+    {
+        return rtrim($baseUrl, '/') . '/' . ltrim($query, '/');
     }
 
     public function getDocumentsUrls(): array

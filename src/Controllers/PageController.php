@@ -106,7 +106,6 @@ class PageController
                 $page = $this->cmsClient->getCollectionItem($collection, $slug, $language);
             } else {
                 $page = $this->cmsClient->getPage($slug, $language);
-                dd($page);
             }
             if (!$page) {
                 throw new \Exception('Page not found');

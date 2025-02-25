@@ -2,7 +2,7 @@
 
 namespace App\CmsClients\Sanity;
 
-use App\CmsClients\Sanity\Components\SanityApiFetcher;
+use App\Utils\ApiFetcher;
 use App\CmsClients\Sanity\Components\SanityDataProcessor;
 use App\CmsClients\Sanity\Components\SanityReferenceHandler;
 use App\CmsClients\Sanity\Components\DocumentsHandler;
@@ -11,14 +11,14 @@ use App\CmsClients\CmsClientInterface;
 
 class SanityCmsClient implements CmsClientInterface
 {
-    private SanityApiFetcher $apiFetcher;
+    private ApiFetcher $apiFetcher;
     private SanityDataProcessor $dataProcessor;
     private SanityReferenceHandler $referenceHandler;
     private DocumentsHandler $documentsHandler;
 
     public function __construct(string $apiUrl)
     {
-        $this->apiFetcher = new SanityApiFetcher($apiUrl);
+        $this->apiFetcher = new ApiFetcher($apiUrl, $this);
         $this->dataProcessor = new SanityDataProcessor();
         $this->referenceHandler = new SanityReferenceHandler($this->apiFetcher, json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true));
         $this->documentsHandler = new DocumentsHandler();
@@ -26,7 +26,7 @@ class SanityCmsClient implements CmsClientInterface
 
     public function getPages(): array
     {
-        $response = $this->apiFetcher->fetchQuery('*[_type == "page"]');
+        $response = $this->apiFetcher->fetchFromApi('*[_type == "page"]');
         return $response['result'] ?? [];
     }
 
@@ -34,7 +34,7 @@ class SanityCmsClient implements CmsClientInterface
     {
         $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
 
-        $response = $this->apiFetcher->fetchQuery('*[]{_type, slug, _id, title}', ['disable_cache' => true]);
+        $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title}', ['disable_cache' => true]);
         $response = $response['result'] ?? [];
 
         $allDocuments = [];
@@ -50,14 +50,14 @@ class SanityCmsClient implements CmsClientInterface
     public function getPage(string $slug, ?string $language = null): ?array
     {
         $query = '*[_type == "page" && slug.current == "' . $slug . '"][0]';
-        $response = $this->apiFetcher->fetchQuery($query);
+        $response = $this->apiFetcher->fetchFromApi($query);
         return $this->formatPage($response, $language);
     }
 
     public function getCollectionItem(string $collection, string $slug, ?string $language = null): ?array
     {
         $query = '*[_type == "' . $collection . '" && slug.current == "' . $slug . '"][0]';
-        $response = $this->apiFetcher->fetchQuery($query);
+        $response = $this->apiFetcher->fetchFromApi($query);
         return $this->formatPage($response, $language);
     }
 
@@ -120,6 +120,13 @@ class SanityCmsClient implements CmsClientInterface
         $page['modules'] = $modulesArray;
 
         return $page;
+    }
+
+    public function urlBuilder(string $baseUrl, string $query, array $options): string
+    {
+        // Sanity-specific URL construction logic
+        $encodedQuery = urlencode($query);
+        return rtrim($baseUrl, '/') . ltrim($encodedQuery, '/');
     }
 
 }

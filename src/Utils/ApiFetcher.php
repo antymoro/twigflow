@@ -7,16 +7,19 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Create;
 use App\Services\CacheService;
+use App\CmsClients\CmsClientInterface;
 
 class ApiFetcher
 {
     private CacheService $cache;
     private Client $client;
     private string $apiUrl;
+    private CmsClientInterface $cmsClient;
 
-    public function __construct(string $baseUri)
+    public function __construct(string $baseUri, CmsClientInterface $cmsClient)
     {
         $this->apiUrl = rtrim($baseUri, '/');
+        $this->cmsClient = $cmsClient;
 
         $apiKey = $_ENV['API_KEY'] ?? null;
         $headers = [];
@@ -35,8 +38,7 @@ class ApiFetcher
 
     public function fetchFromApi(string $query, array $options = []): ?array
     {
-        // $url = $this->apiUrl . urlencode($query);
-        $url = $this->apiUrl . $query;
+        $url = $this->buildUrl($query, $options);
         $cacheKey = $this->generateCacheKey($url);
 
         if (isset($options['disable_cache']) && $options['disable_cache'] === true) {
@@ -57,8 +59,7 @@ class ApiFetcher
 
     public function asyncFetchFromApi(string $query, array $options = []): PromiseInterface
     {
-        // $url = $this->apiUrl . urlencode($query);
-        $url = $this->apiUrl . $query;
+        $url = $this->buildUrl($query, $options);
         return $this->asyncFetch($url);
     }
 
@@ -81,6 +82,11 @@ class ApiFetcher
                 return $data;
             });
         }
+    }
+
+    private function buildUrl(string $query, array $options): string
+    {
+        return $this->cmsClient->urlBuilder($this->apiUrl, $query, $options);
     }
 
     private function generateCacheKey(string $url): string

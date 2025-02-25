@@ -91,10 +91,10 @@ return [
         }
     },
 
-    // Register ApiFetcher
-    ApiFetcher::class => function () {
+    ApiFetcher::class => function ($container) {
+        $cmsClient = $container->get(CmsClientInterface::class);
         $baseUri = $_ENV['API_URL'];
-        return new ApiFetcher($baseUri);
+        return new ApiFetcher($baseUri, $cmsClient);
     },
 
     // Register DataProcessor
