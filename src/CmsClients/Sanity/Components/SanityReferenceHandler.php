@@ -1,22 +1,28 @@
 <?php
 
 namespace App\CmsClients\Sanity\Components;
+
 use App\Utils\ApiFetcher;
+use App\Context\RequestContext;
 
 class SanityReferenceHandler
 {
     private ApiFetcher $apiFetcher;
+    private string $language;
     private array $routesConfig;
     private array $collections = [];
 
-    public function __construct(ApiFetcher $apiFetcher, array $routesConfig)
+    public function __construct(ApiFetcher $apiFetcher, array $routesConfig, RequestContext $context)
     {
         $this->apiFetcher = $apiFetcher;
         $this->routesConfig = $routesConfig;
+        $this->language = $context->getLanguage();
     }
 
-    public function fetchReferences(array $referenceIds, ?string $language = null): array
+    public function fetchReferences(array $referenceIds): array
     {
+        $language = $this->language;
+
         if (empty($referenceIds)) {
             return [];
         }
@@ -34,8 +40,9 @@ class SanityReferenceHandler
         return $mapping;
     }
 
-    public function substituteReferences($data, array $mapping, ?string $language = null)
+    public function substituteReferences($data, array $mapping)
     {
+        $language = $this->language;
 
         if (is_array($data)) {
             if (isset($data['_type']) && $data['_type'] === 'reference' && isset($data['_ref']) && !empty($mapping)) {
@@ -83,8 +90,10 @@ class SanityReferenceHandler
 
     
 
-    private function processMappedReferences($data, array $mapping, ?string $language = null)
+    private function processMappedReferences($data, array $mapping)
     {
+        $language = $this->language;
+
         if (is_array($data)) {
             if (isset($data['_type']) && $data['_type'] === 'sanity.imageAsset' && isset($data['_id'])) {
                 $data = $this->constructImageUrl($data['_id']);
@@ -102,15 +111,17 @@ class SanityReferenceHandler
 
             if (is_array($data)) {
                 foreach ($data as $key => $value) {
-                    $data[$key] = $this->processMappedReferences($value, $mapping, $language);
+                    $data[$key] = $this->processMappedReferences($value, $mapping);
                 }
             }
         }
         return $data;
     }
 
-    public function resolveReferenceUrls($data, ?string $language = null)
+    public function resolveReferenceUrls($data)
     {
+        $language = $this->language;
+
         if (empty($this->collections)) {
             $this->initializeCollections();
         }

@@ -11,6 +11,8 @@ use App\CmsClients\Sanity\SanityCmsClient;
 use App\Controllers\PageController;
 use App\Processors\DataProcessor;
 
+use App\Context\RequestContext;
+
 use App\Controllers\CacheController;
 use App\Controllers\ScraperController;
 use App\Controllers\SearchController;
@@ -79,13 +81,14 @@ return [
         $cmsClient = $_ENV['CMS_CLIENT'] ?? 'payload';
         $apiUrl = $_ENV['API_URL'];
         $cacheService = $container->get(CacheService::class);
+        $context = $container->get(RequestContext::class);
 
         // Return the appropriate CMS client implementation
         switch (strtolower($cmsClient)) {
             case 'payload':
-                return new PayloadCmsClient($apiUrl, $cacheService);
+                return new PayloadCmsClient($apiUrl, $context);
             case 'sanity':
-                return new SanityCmsClient($apiUrl, $cacheService);
+                return new SanityCmsClient($apiUrl, $context);
             default:
                 throw new \Exception("Unsupported CMS client: $cmsClient");
         }
@@ -97,12 +100,18 @@ return [
         return new ApiFetcher($baseUri, $cmsClient);
     },
 
+    RequestContext::class => function () {
+        $language = $_ENV['DEFAULT_LANGUAGE'] ?? 'en';
+        return new RequestContext($language);
+    },
+
     // Register DataProcessor
     DataProcessor::class => function ($container) {
         return new DataProcessor(
             $container->get(ApiFetcher::class),
             $container->get(CacheService::class),
-            $container->get(CmsClientInterface::class)
+            $container->get(CmsClientInterface::class),
+            $container->get(RequestContext::class)
         );
     },
 

@@ -7,6 +7,7 @@ use App\Services\CacheService;
 use App\CmsClients\CmsClientInterface;
 use App\Modules\Manager\ModuleProcessorInterface;
 use App\Pages\Manager\PageProcessorInterface;
+use App\Context\RequestContext;
 
 class DataProcessor
 {
@@ -14,23 +15,28 @@ class DataProcessor
     private CmsClientInterface $cmsClient;
     private array $processors = [];
     private $pageProcessor;
+    private string $language;
 
     public function __construct(
         ApiFetcher $apiFetcher,
         CacheService $cacheService,
-        CmsClientInterface $cmsClient
+        CmsClientInterface $cmsClient,
+        RequestContext $context
     ) {
         $this->apiFetcher = $apiFetcher;
         $this->cmsClient  = $cmsClient;
+        $this->language = $context->getLanguage();
     }
 
-    public function processPage(array $pageData, string $pageType, ?string $language): array
+    public function processPage(array $pageData, string $pageType): array
     {
+        $language = $this->language;
+
         // Step 1: Separate metadata and modules
         [$metadata, $modules] = $this->separateData($pageData);
 
         // Step 2: Collect promises (modules and global)
-        $promises = $this->collectModulePromises($modules, $language, $pageType, $metadata);
+        $promises = $this->collectModulePromises($modules, $pageType, $metadata);
         [$globalsConfig, $promises] = $this->collectGlobalPromises($promises);
 
         // Step 3: Wait for promises and tidy up the results
@@ -39,12 +45,12 @@ class DataProcessor
         $promisesResults = $this->tidyPromiseResults($promisesResults, $globalsConfig, $metadata);
 
         // Step 4: Process the data using the CMS client and modules
-        $pageData = $this->cmsClient->processData($modules, $globalsConfig, $promisesResults, $language);
-        $modules = $this->processModules($pageData, $language);
+        $pageData = $this->cmsClient->processData($modules, $globalsConfig, $promisesResults);
+        $modules = $this->processModules($pageData);
         $pageData['modules'] = $modules;
 
         // Step 5: Add translations
-        $pageData['translations'] = $this->addTranslations($language);
+        $pageData['translations'] = $this->addTranslations();
 
         // Step 6: Process the page using the page processor (if available)
         if (isset($this->pageProcessor)) {
@@ -112,8 +118,9 @@ class DataProcessor
     }
 
     // Helper: Add translations from a static file
-    private function addTranslations(?string $locale): array
+    private function addTranslations(): array
     {
+        $locale = $this->language;
         $staticTranslations = json_decode(
             file_get_contents(BASE_PATH . '/application/translations.json'),
             true
@@ -122,8 +129,10 @@ class DataProcessor
     }
 
     // Existing helper methods remain unchanged:
-    private function collectModulePromises(array $modules, ?string $language, string $pageType, array $metadata): array
+    private function collectModulePromises(array $modules, string $pageType, array $metadata): array
     {
+        $language = $this->language;
+
         $promises = [];
         $index = 0;
 
@@ -179,7 +188,7 @@ class DataProcessor
         return $flattened;
     }
 
-    private function processModules(array $pageData, ?string $language): array
+    private function processModules(array $pageData): array
     {
         $modules = $pageData['modules'] ?? [];
         $index = 0;

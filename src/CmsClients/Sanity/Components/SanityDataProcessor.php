@@ -2,14 +2,24 @@
 
 namespace App\CmsClients\Sanity\Components;
 
+use App\Context\RequestContext;
 use Sanity\BlockContent;
 
 class SanityDataProcessor
 {
+
+    private string $language;
     private array $referenceIds = [];
 
-    public function processDataRecursively($data, ?string $language): mixed
+    public function __construct(RequestContext $context)
     {
+        $this->language = $context->getLanguage();
+    }
+
+    public function processDataRecursively($data): mixed
+    {
+        $language = $this->language;
+
         if (is_array($data)) {
             if (isset($data['_id']) && str_contains($data['_id'], 'drafts.')) {
                 return null;
@@ -59,8 +69,10 @@ class SanityDataProcessor
         return $data;
     }
 
-    public function processHtmlBlockModule(array $module, ?string $language=null): array
+    public function processHtmlBlockModule(array $module): array
     {
+        $language = $this->language;
+
         $submodules = [];
         $currentBlocks = [];
 

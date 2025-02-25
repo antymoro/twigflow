@@ -6,8 +6,8 @@ use App\Utils\ApiFetcher;
 use App\CmsClients\Sanity\Components\SanityDataProcessor;
 use App\CmsClients\Sanity\Components\SanityReferenceHandler;
 use App\CmsClients\Sanity\Components\DocumentsHandler;
-
 use App\CmsClients\CmsClientInterface;
+use App\Context\RequestContext;
 
 class SanityCmsClient implements CmsClientInterface
 {
@@ -15,13 +15,15 @@ class SanityCmsClient implements CmsClientInterface
     private SanityDataProcessor $dataProcessor;
     private SanityReferenceHandler $referenceHandler;
     private DocumentsHandler $documentsHandler;
+    private string $language;
 
-    public function __construct(string $apiUrl)
+    public function __construct(string $apiUrl, RequestContext $context)
     {
         $this->apiFetcher = new ApiFetcher($apiUrl, $this);
-        $this->dataProcessor = new SanityDataProcessor();
-        $this->referenceHandler = new SanityReferenceHandler($this->apiFetcher, json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true));
+        $this->dataProcessor = new SanityDataProcessor($context);
+        $this->referenceHandler = new SanityReferenceHandler($this->apiFetcher, json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true), $context);
         $this->documentsHandler = new DocumentsHandler();
+        $this->language = $context->getLanguage();
     }
 
     public function getPages(): array
@@ -47,21 +49,21 @@ class SanityCmsClient implements CmsClientInterface
         return $allDocuments;
     }
 
-    public function getPage(string $slug, ?string $language = null): ?array
+    public function getPage(string $slug): ?array
     {
         $query = '*[_type == "page" && slug.current == "' . $slug . '"][0]';
         $response = $this->apiFetcher->fetchFromApi($query);
-        return $this->formatPage($response, $language);
+        return $this->formatPage($response);
     }
 
-    public function getCollectionItem(string $collection, string $slug, ?string $language = null): ?array
+    public function getCollectionItem(string $collection, string $slug): ?array
     {
         $query = '*[_type == "' . $collection . '" && slug.current == "' . $slug . '"][0]';
         $response = $this->apiFetcher->fetchFromApi($query);
-        return $this->formatPage($response, $language);
+        return $this->formatPage($response);
     }
 
-    public function processData(array $modules, array $globalsConfig, array $asyncData, ?string $language = null): array
+    public function processData(array $modules, array $globalsConfig, array $asyncData): array
     {
         $globals = array_keys($globalsConfig);
 
@@ -78,15 +80,15 @@ class SanityCmsClient implements CmsClientInterface
             'metadata' => $asyncData['metadata'] ?? []
         ];
 
-        $processedCombined = $this->dataProcessor->processDataRecursively($combinedData, $language);
+        $processedCombined = $this->dataProcessor->processDataRecursively($combinedData);
 
-        $references = $this->referenceHandler->fetchReferences($this->dataProcessor->getReferenceIds(), $language);
+        $references = $this->referenceHandler->fetchReferences($this->dataProcessor->getReferenceIds());
 
-        $processedReferences = $this->dataProcessor->processDataRecursively($references, $language);
+        $processedReferences = $this->dataProcessor->processDataRecursively($references);
 
-        $processedCombined = $this->referenceHandler->substituteReferences($processedCombined, $processedReferences, $language);
+        $processedCombined = $this->referenceHandler->substituteReferences($processedCombined, $processedReferences);
 
-        $processedCombined = $this->referenceHandler->resolveReferenceUrls($processedCombined, $language);
+        $processedCombined = $this->referenceHandler->resolveReferenceUrls($processedCombined);
 
 
         foreach ($processedCombined['modulesAsyncData'] as $index => $module) {
@@ -105,7 +107,7 @@ class SanityCmsClient implements CmsClientInterface
         ];
     }
 
-    private function formatPage($page, ?string $language = null): ?array
+    private function formatPage($page): ?array
     {
         if (empty($page['result'])) {
             return null;
@@ -128,5 +130,4 @@ class SanityCmsClient implements CmsClientInterface
         $encodedQuery = urlencode($query);
         return rtrim($baseUrl, '/') . ltrim($encodedQuery, '/');
     }
-
 }

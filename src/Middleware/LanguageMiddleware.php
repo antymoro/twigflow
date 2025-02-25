@@ -2,6 +2,8 @@
 
 namespace App\Middleware;
 
+use App\Context\RequestContext;
+
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -10,11 +12,13 @@ class LanguageMiddleware
 {
     private array $supportedLanguages;
     private string $defaultLanguage;
+    private RequestContext $context;
 
-    public function __construct(array $supportedLanguages, string $defaultLanguage)
+    public function __construct(array $supportedLanguages, string $defaultLanguage, RequestContext $context)
     {
         $this->supportedLanguages = $supportedLanguages;
         $this->defaultLanguage = $defaultLanguage;
+        $this->context = $context;
     }
 
     public function __invoke(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -52,6 +56,9 @@ class LanguageMiddleware
         $request = $request->withAttribute('language', $language);
         $uri = $uri->withPath('/' . implode('/', $segments));
         $request = $request->withUri($uri);
+
+        // Set the language in the context
+        $this->context->setLanguage($language);
 
         return $handler->handle($request);
     }

@@ -6,14 +6,18 @@ use Slim\App;
 use App\Middleware\LanguageMiddleware;
 use App\Controllers\ScraperController;
 use App\Controllers\SearchController;
+use App\Context\RequestContext;
 
 return function (App $app) {
     // Load supported languages from environment
     $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
     $defaultLanguage = $supportedLanguages[0] ?? 'en';
 
+    // Create the RequestContext object
+    $context = new RequestContext($defaultLanguage);
+
     // Add Language Middleware
-    $app->add(new LanguageMiddleware($supportedLanguages, $defaultLanguage));
+    $app->add(new LanguageMiddleware($supportedLanguages, $defaultLanguage, $context));
 
     // Load routing configuration from JSON file
     $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
@@ -46,7 +50,7 @@ return function (App $app) {
         $app->get($pattern, \App\Controllers\PageController::class . ':showCollectionItem')
             ->setName('page.showCollectionItem')
             ->add(function ($request, $handler) use ($collection, $routesConfig) {
-                return $handler->handle($request->withAttribute('collection', $collection)->withAttribute('routesConfig', $routesConfig));;
+                return $handler->handle($request->withAttribute('collection', $collection)->withAttribute('routesConfig', $routesConfig));
             });
     }
 };
