@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Processors;
 
 use GuzzleHttp\Promise\Utils;
@@ -21,21 +20,60 @@ class DataProcessor
         CacheService $cacheService,
         CmsClientInterface $cmsClient
     ) {
-        $this->apiFetcher   = $apiFetcher;
-        $this->cmsClient    = $cmsClient;
+        $this->apiFetcher = $apiFetcher;
+        $this->cmsClient  = $cmsClient;
     }
 
     public function processPage(array $pageData, string $pageType, ?string $language): array
     {
-        // Step 1: Separate metadata and modules from the page data
+        // Step 1: Separate metadata and modules
+        [$metadata, $modules] = $this->separateData($pageData);
+
+        // Step 2: Collect promises (modules and global)
+        $promises = $this->collectModulePromises($modules, $language, $pageType, $metadata);
+        [$globalsConfig, $promises] = $this->collectGlobalPromises($promises);
+
+        // Step 3: Wait for promises and tidy up the results
+        $promisesResults = Utils::settle($promises)->wait();
+        $promisesResults = $this->flattenPromisesResults($promisesResults);
+        $promisesResults = $this->tidyPromiseResults($promisesResults, $globalsConfig, $metadata);
+
+        // Step 4: Process the data using the CMS client and modules
+        $pageData = $this->cmsClient->processData($modules, $globalsConfig, $promisesResults, $language);
+        $modules = $this->processModules($pageData, $language);
+        $pageData['modules'] = $modules;
+
+        // Step 5: Add translations
+        $pageData['translations'] = $this->addTranslations($language);
+
+        // Step 6: Process the page using the page processor (if available)
+        if (isset($this->pageProcessor)) {
+            $pageData['metadata'] = $this->pageProcessor->process(
+                $pageData['metadata'],
+                $pageData['metadata']
+            );
+        }
+
+        // Ensure globals are set
+        foreach ($globalsConfig as $key => $global) {
+            $pageData['globals'][$key] = $pageData['globals'][$key] ?? [];
+        }
+
+        return $pageData;
+    }
+
+    // Helper: Separate metadata and modules from page data
+    private function separateData(array $pageData): array
+    {
         $metadata = $pageData['result'] ?? [];
         $modules = $pageData['modules'] ?? [];
         unset($metadata['modules']);
+        return [$metadata, $modules];
+    }
 
-        // Step 2: Collect promises for the page and the modules
-        $promises = $this->collectPromises($modules, $language, $pageType, $metadata);
-
-        // Step 3: Collect global promises
+    // Helper: Collect global promises and return globals config + updated promises
+    private function collectGlobalPromises(array $promises): array
+    {
         $globalsConfigPath = BASE_PATH . '/application/globals.json';
         if (file_exists($globalsConfigPath)) {
             $globalsConfig = json_decode(file_get_contents($globalsConfigPath), true);
@@ -45,22 +83,24 @@ class DataProcessor
         } else {
             $globalsConfig = [];
         }
+        return [$globalsConfig, $promises];
+    }
 
-        // Step 4: Wait for all promises to resolve
-        $results = Utils::settle($promises)->wait();
-        $results = $this->flattenResults($results);
-
-        // Step 5: Tidy up the results
+    // Helper: Tidy up promises results from all promises
+    private function tidyPromiseResults(array $results, array $globalsConfig, array $metadata): array
+    {
+        // Extract global results
         $results['globals'] = [];
         foreach ($globalsConfig as $key => $global) {
             $results['globals'][$key] = $results[$key] ?? [];
             unset($results[$key]);
         }
-
+        // Merge page metadata with promise results (for 'page')
         $results['metadata'] = array_merge($metadata, $results['page'] ?? []);
         unset($results['page']);
-        $results['modulesAsyncData'] = [];
 
+        // Collate module results
+        $results['modulesAsyncData'] = [];
         foreach ($results as $key => $result) {
             if (strpos($key, 'module_') === 0) {
                 $index = intval(str_replace('module_', '', $key));
@@ -68,34 +108,26 @@ class DataProcessor
                 unset($results[$key]);
             }
         }
-
-        // Step 6: Process the data using the CMS client
-        $pageData = $this->cmsClient->processData($modules, $globalsConfig, $results, $language);
-        $modules = $this->processModules($pageData, $language);
-        $pageData['modules'] = $modules;
-
-        // Step 7: Add translations
-        $staticTranslations = json_decode(file_get_contents(BASE_PATH . '/application/translations.json'), true);
-        $pageData['translations'] = $this->parseTranslations($staticTranslations, $language);
-
-        foreach ($globalsConfig as $key => $global) {
-            $pageData['globals'][$key] = $pageData['globals'][$key] ?? [];
-        }
-
-        // Step 8: Process the page using the page processor if available
-        if (isset($this->pageprocessor)) {
-            $pageData['metadata'] = $this->pageProcessor->process($pageData['metadata'], $pageData['metadata']);
-        }
-
-        return $pageData;
+        return $results;
     }
 
-    private function collectPromises(array $modules, ?string $language, string $pageType, array $metadata): array
+    // Helper: Add translations from a static file
+    private function addTranslations(?string $locale): array
+    {
+        $staticTranslations = json_decode(
+            file_get_contents(BASE_PATH . '/application/translations.json'),
+            true
+        );
+        return $this->parseTranslations($staticTranslations, $locale);
+    }
+
+    // Existing helper methods remain unchanged:
+    private function collectModulePromises(array $modules, ?string $language, string $pageType, array $metadata): array
     {
         $promises = [];
         $index = 0;
 
-        if (!isset($this->pageprocessor)) {
+        if (!isset($this->pageProcessor)) {
             $this->loadPageProcessor($pageType);
         }
 
@@ -127,10 +159,10 @@ class DataProcessor
         return $promises;
     }
 
-    private function flattenResults(array $results): array
+    private function flattenPromisesResults(array $promisesResults): array
     {
         $flattened = [];
-        foreach ($results as $key => $result) {
+        foreach ($promisesResults as $key => $result) {
             if (isset($result['value'])) {
                 $value = $result['value'];
                 if ($value instanceof \Psr\Http\Message\ResponseInterface) {
@@ -154,10 +186,7 @@ class DataProcessor
         foreach ($modules as &$module) {
             $type = $module['type'] ?? null;
             if ($type && isset($this->processors[$type])) {
-                $moduleAsyncData = [];
-                if (isset($pageData['modulesAsyncData'][$index])) {
-                    $moduleAsyncData = $pageData['modulesAsyncData'][$index];
-                }
+                $moduleAsyncData = $pageData['modulesAsyncData'][$index] ?? [];
                 $module = $this->processors[$type]->process($module, $moduleAsyncData);
             }
             $index++;
