@@ -9,6 +9,7 @@ use App\CmsClients\CmsClientInterface;
 use App\Utils\HtmlUpdater;
 use App\Processors\DataProcessor;
 use App\Services\CacheService;
+use App\Context\RequestContext;
 
 class PageController
 {
@@ -18,6 +19,7 @@ class PageController
     private string $userTemplatePath;
     private DataProcessor $dataProcessor;
     private CacheService $cacheService;
+    private RequestContext $context;
 
     /**
      * Constructor to initialize dependencies.
@@ -26,14 +28,16 @@ class PageController
      * @param DataProcessor $dataProcessor
      * @param CmsClientInterface $cmsClient
      * @param CacheService $cacheService
+     * @param RequestContext $context
      * @param string $templatePath
      */
-    public function __construct(Twig $view, DataProcessor $dataProcessor, CmsClientInterface $cmsClient, CacheService $cacheService, string $templatePath = 'src/views/')
+    public function __construct(Twig $view, DataProcessor $dataProcessor, CmsClientInterface $cmsClient, CacheService $cacheService, RequestContext $context, string $templatePath = 'src/views/')
     {
         $this->view = $view;
         $this->dataProcessor = $dataProcessor;
         $this->cmsClient = $cmsClient;
         $this->cacheService = $cacheService;
+        $this->context = $context;
         $this->templatePath = $templatePath;
         $this->userTemplatePath = BASE_PATH . '/application/views/';
     }
@@ -49,9 +53,9 @@ class PageController
     public function show(Request $request, Response $response, array $args): Response
     {
         $slug = $args['slug'] ?? '';
-        $language = $request->getAttribute('language') ?? null;
+        $this->context->setLanguage($request->getAttribute('language') ?? null);
 
-        return $this->handlePageRequest($request, $response, $slug, $language);
+        return $this->handlePageRequest($request, $response, $slug);
     }
 
     /**
@@ -61,13 +65,13 @@ class PageController
     {
         $collection = $request->getAttribute('collection');
         $slug = $args['slug'] ?? null;
-        $language = $request->getAttribute('language') ?? null;
+        $this->context->setLanguage($request->getAttribute('language') ?? null);
 
         if (!$collection || !$slug) {
             return $this->renderError($response, 404, 'Collection or slug not specified');
         }
 
-        return $this->handlePageRequest($request, $response, $slug, $language, $collection);
+        return $this->handlePageRequest($request, $response, $slug, $collection);
     }
 
     /**
@@ -82,9 +86,9 @@ class PageController
     /**
      * Common logic to handle page requests.
      */
-    private function handlePageRequest(Request $request, Response $response, string $slug, ?string $language, ?string $collection = null): Response
+    private function handlePageRequest(Request $request, Response $response, string $slug, ?string $collection = null): Response
     {
-        // Geenerate a cache key for the page
+        // Generate a cache key for the page
         $queryParams = $request->getQueryParams();
         $queryString = http_build_query($queryParams);
         $fullUrl = (string) $request->getUri()->withQuery($queryString);
@@ -99,27 +103,27 @@ class PageController
                 $pageType = $config['page'];
             }
         }
-        
+
         // Cache processed data
-        $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $language, $collection, $pageType) {
+        $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $collection, $pageType) {
             if ($collection !== null) {
-                $page = $this->cmsClient->getCollectionItem($collection, $slug, $language);
+                $page = $this->cmsClient->getCollectionItem($collection, $slug);
             } else {
-                $page = $this->cmsClient->getPage($slug, $language);
+                $page = $this->cmsClient->getPage($slug);
             }
             if (!$page) {
                 throw new \Exception('Page not found');
             }
-            return $this->dataProcessor->processPage($page, $pageType, $language);
+            return $this->dataProcessor->processPage($page, $pageType);
         });
-    
-        return $this->renderPage($request, $response, $pageData, $language);
+
+        return $this->renderPage($request, $response, $pageData);
     }
 
     /**
      * Helper method to render data in a 'page.twig' template.
      */
-    private function renderPage(Request $request, Response $response, array $data, ?string $language): Response
+    private function renderPage(Request $request, Response $response, array $data): Response
     {
         // Check if 'json' parameter is set to true
         $queryParams = $request->getQueryParams();
@@ -152,7 +156,7 @@ class PageController
             'modules' => $data['modules'] ?? [],
             'globals' => $data['globals'] ?? [],
             'translations' => $data['translations'] ?? [],
-            'home_url'  => (empty($language)) ? '/' : '/'.$language,
+            'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
         ]);
 
         // Check if performance measurement is enabled

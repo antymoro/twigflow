@@ -122,7 +122,8 @@ return [
             $container->get(Twig::class),
             $container->get(DataProcessor::class),
             $container->get(CmsClientInterface::class),
-            $container->get(CacheService::class)
+            $container->get(CacheService::class),
+            $container->get(RequestContext::class)
         );
     },
 

@@ -3,19 +3,20 @@
 namespace App\CmsClients\Payload;
 
 use App\Utils\ApiFetcher;
-
-
 use App\CmsClients\CmsClientInterface;
+use App\Context\RequestContext;
 
 class PayloadCmsClient implements CmsClientInterface
 {
     private string $apiUrl;
     private ApiFetcher $apiFetcher;
+    private RequestContext $context;
 
-    public function __construct(string $apiUrl)
+    public function __construct(string $apiUrl, RequestContext $context)
     {
         $this->apiUrl = $apiUrl;
         $this->apiFetcher = new ApiFetcher($this->apiUrl, $this);
+        $this->context = $context;
     }
 
     public function getPages(): array
@@ -23,16 +24,15 @@ class PayloadCmsClient implements CmsClientInterface
         return [];
     }
 
-    public function getPage(string $slug, ?string $language = null): ?array
+    public function getPage(string $slug): ?array
     {
-        $page = $this->getPageBySlug($slug, $language);
+        $page = $this->getPageBySlug($slug);
 
         if (!$page) {
             return null;
         }
 
-        return $this->formatPage($page, $language);
-
+        return $this->formatPage($page);
     }
 
     public function getScaffold(string $global): ?array
@@ -40,9 +40,8 @@ class PayloadCmsClient implements CmsClientInterface
         return [];
     }
 
-    private function getPageBySlug(string $slug, ?string $language = null): ?array
+    private function getPageBySlug(string $slug): ?array
     {
-        
         $query = '/pages?where[slug][equals]=' . $slug;
         $response = $this->apiFetcher->fetchFromApi($query);
 
@@ -54,15 +53,13 @@ class PayloadCmsClient implements CmsClientInterface
         return null;
     }
 
-    private function formatPage($page, ?string $language = null): ?array
+    private function formatPage($page): ?array
     {
-
         $formattedPage = [];
 
         $pageModules = $page['content'] ?? [];
 
         $modulesArray = array_map(function ($module) {
-
             if (empty($module['is_published'])) {
                 return null;
             }
@@ -70,7 +67,6 @@ class PayloadCmsClient implements CmsClientInterface
             $module['type'] = slugify($module['blockType'] ?? '');
             unset($module['blockType']);
             return $module;
-            
         }, $pageModules);
 
         $modulesArray = array_filter($modulesArray);
@@ -83,9 +79,10 @@ class PayloadCmsClient implements CmsClientInterface
         return $formattedPage;
     }
 
-    private function getPageById(string $id, ?string $language = null): ?array
+    private function getPageById(string $id): ?array
     {
         $url = $this->apiUrl . '/pages/' . urlencode($id);
+        $language = $this->context->getLanguage();
         if ($language) {
             $locale = $this->mapLanguageToLocale($language);
             $url .= '?locale=' . urlencode($locale);
@@ -93,7 +90,7 @@ class PayloadCmsClient implements CmsClientInterface
         return $this->apiFetcher->fetchFromApi($url);
     }
 
-    public function getCollectionItem(string $collection, string $slug, ?string $language = null): ?array
+    public function getCollectionItem(string $collection, string $slug): ?array
     {
         return [];
     }
@@ -107,7 +104,19 @@ class PayloadCmsClient implements CmsClientInterface
         return $locales[$language] ?? 'en-US';
     }
 
-    public function processData(array $modules, array $globalsConfig, array $asyncData, ?string $language = null): array
+    public function processData(array $modules, array $globalsConfig, array $asyncData): array
+    {
+        $this->updateGlobals($asyncData, $globalsConfig);
+        $combinedData = $this->combineData($modules, $asyncData);
+
+        $processedCombined = $combinedData;
+
+        $this->updateModulesAsyncData($processedCombined);
+
+        return $this->extractProcessedData($processedCombined);
+    }
+
+    private function updateGlobals(array &$asyncData, array $globalsConfig): void
     {
         $globals = array_keys($globalsConfig);
 
@@ -116,16 +125,20 @@ class PayloadCmsClient implements CmsClientInterface
                 $asyncData['globals'][$key] = $value['result'];
             }
         }
+    }
 
-        $combinedData = [
+    private function combineData(array $modules, array $asyncData): array
+    {
+        return [
             'modules' => $modules,
             'modulesAsyncData' => $asyncData['modulesAsyncData'] ?? [],
             'globals' => $asyncData['globals'] ?? [],
             'metadata' => $asyncData['metadata'] ?? []
         ];
+    }
 
-        $processedCombined = $combinedData;
-
+    private function updateModulesAsyncData(array &$processedCombined): void
+    {
         foreach ($processedCombined['modulesAsyncData'] as $index => $module) {
             foreach ($module as $key => $value) {
                 if (!empty($value['result'])) {
@@ -133,7 +146,10 @@ class PayloadCmsClient implements CmsClientInterface
                 }
             }
         }
+    }
 
+    private function extractProcessedData(array $processedCombined): array
+    {
         return [
             'modules' => $processedCombined['modules'] ?? [],
             'modulesAsyncData' => $processedCombined['modulesAsyncData'] ?? [],

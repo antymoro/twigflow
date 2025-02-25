@@ -65,6 +65,20 @@ class SanityCmsClient implements CmsClientInterface
 
     public function processData(array $modules, array $globalsConfig, array $asyncData): array
     {
+        $this->updateGlobals($asyncData, $globalsConfig);
+        $combinedData = $this->combineData($modules, $asyncData);
+
+        $processedCombined = $this->dataProcessor->processDataRecursively($combinedData);
+
+        $processedCombined = $this->processReferences($processedCombined);
+
+        $this->updateModulesAsyncData($processedCombined);
+
+        return $this->extractProcessedData($processedCombined);
+    }
+
+    private function updateGlobals(array &$asyncData, array $globalsConfig): void
+    {
         $globals = array_keys($globalsConfig);
 
         foreach ($asyncData['globals'] as $key => $value) {
@@ -72,25 +86,29 @@ class SanityCmsClient implements CmsClientInterface
                 $asyncData['globals'][$key] = $value['result'];
             }
         }
+    }
 
-        $combinedData = [
+    private function combineData(array $modules, array $asyncData): array
+    {
+        return [
             'modules' => $modules,
             'modulesAsyncData' => $asyncData['modulesAsyncData'] ?? [],
             'globals' => $asyncData['globals'] ?? [],
             'metadata' => $asyncData['metadata'] ?? []
         ];
+    }
 
-        $processedCombined = $this->dataProcessor->processDataRecursively($combinedData);
-
+    private function processReferences(array $processedCombined): array
+    {
         $references = $this->referenceHandler->fetchReferences($this->dataProcessor->getReferenceIds());
-
         $processedReferences = $this->dataProcessor->processDataRecursively($references);
 
         $processedCombined = $this->referenceHandler->substituteReferences($processedCombined, $processedReferences);
+        return $this->referenceHandler->resolveReferenceUrls($processedCombined);
+    }
 
-        $processedCombined = $this->referenceHandler->resolveReferenceUrls($processedCombined);
-
-
+    private function updateModulesAsyncData(array &$processedCombined): void
+    {
         foreach ($processedCombined['modulesAsyncData'] as $index => $module) {
             foreach ($module as $key => $value) {
                 if (!empty($value['result'])) {
@@ -98,7 +116,10 @@ class SanityCmsClient implements CmsClientInterface
                 }
             }
         }
+    }
 
+    private function extractProcessedData(array $processedCombined): array
+    {
         return [
             'modules' => $processedCombined['modules'] ?? [],
             'modulesAsyncData' => $processedCombined['modulesAsyncData'] ?? [],
