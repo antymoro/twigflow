@@ -35,7 +35,8 @@ class ApiFetcher
 
     public function fetchFromApi(string $query, array $options = []): ?array
     {
-        $url = $this->apiUrl . urlencode($query);
+        // $url = $this->apiUrl . urlencode($query);
+        $url = $this->apiUrl . $query;
         $cacheKey = $this->generateCacheKey($url);
 
         if (isset($options['disable_cache']) && $options['disable_cache'] === true) {
@@ -56,7 +57,13 @@ class ApiFetcher
 
     public function asyncFetchFromApi(string $query, array $options = []): PromiseInterface
     {
-        $url = $this->apiUrl . urlencode($query);
+        // $url = $this->apiUrl . urlencode($query);
+        $url = $this->apiUrl . $query;
+        return $this->asyncFetch($url);
+    }
+
+    public function asyncFetch(string $url): PromiseInterface
+    {
         $cacheKey = $this->generateCacheKey($url);
 
         if (isset($options['disable_cache']) && $options['disable_cache'] === true) {

@@ -1,14 +1,15 @@
 <?php
 
 namespace App\CmsClients\Sanity\Components;
+use App\Utils\ApiFetcher;
 
 class SanityReferenceHandler
 {
-    private SanityApiFetcher $apiFetcher;
+    private ApiFetcher $apiFetcher;
     private array $routesConfig;
     private array $collections = [];
 
-    public function __construct(SanityApiFetcher $apiFetcher, array $routesConfig)
+    public function __construct(ApiFetcher $apiFetcher, array $routesConfig)
     {
         $this->apiFetcher = $apiFetcher;
         $this->routesConfig = $routesConfig;
@@ -23,7 +24,7 @@ class SanityReferenceHandler
         $refIds = array_values(array_unique($referenceIds));
         $refIdsString = '["' . implode('","', $refIds) . '"]';
         $query = '*[_id in ' . $refIdsString . ']{ _id, slug, _type, image, label, description, name, title }';
-        $response = $this->apiFetcher->fetchQuery($query);
+        $response = $this->apiFetcher->fetchFromApi($query);
         $result = $response['result'] ?? [];  
 
         $mapping = [];

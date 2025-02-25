@@ -36,9 +36,14 @@ class DataProcessor
         $promises = $this->collectPromises($modules, $language, $pageType, $metadata);
 
         // Step 3: Collect global promises
-        $globalsConfig = json_decode(file_get_contents(BASE_PATH . '/application/globals.json'), true);
-        foreach ($globalsConfig as $key => $global) {
-            $promises[$key] = $this->fetchGlobal($global['query']);
+        $globalsConfigPath = BASE_PATH . '/application/globals.json';
+        if (file_exists($globalsConfigPath)) {
+            $globalsConfig = json_decode(file_get_contents($globalsConfigPath), true);
+            foreach ($globalsConfig as $key => $global) {
+                $promises[$key] = $this->fetchGlobal($global['query']);
+            }
+        } else {
+            $globalsConfig = [];
         }
 
         // Step 4: Wait for all promises to resolve

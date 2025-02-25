@@ -84,10 +84,12 @@ class PageController
      */
     private function handlePageRequest(Request $request, Response $response, string $slug, ?string $language, ?string $collection = null): Response
     {
-        // Include $collection in the cache key for uniqueness
+        // Geenerate a cache key for the page
         $queryParams = $request->getQueryParams();
         $queryString = http_build_query($queryParams);
-        $cacheKey = 'page_' . md5($slug . $language . ($collection ?? '') . $queryString);
+        $fullUrl = (string) $request->getUri()->withQuery($queryString);
+
+        $cacheKey = 'page_' . md5($fullUrl);
 
         $routesConfig = $request->getAttribute('routesConfig') ?? [];
 
@@ -104,6 +106,7 @@ class PageController
                 $page = $this->cmsClient->getCollectionItem($collection, $slug, $language);
             } else {
                 $page = $this->cmsClient->getPage($slug, $language);
+                dd($page);
             }
             if (!$page) {
                 throw new \Exception('Page not found');
