@@ -53,4 +53,7 @@ return function (App $app) {
                 return $handler->handle($request->withAttribute('collection', $collection)->withAttribute('routesConfig', $routesConfig));
             });
     }
+
+    $app->get('/{routes:.+}', \App\Controllers\PageController::class . ':show')
+        ->setName('page.catchAll');
 };
