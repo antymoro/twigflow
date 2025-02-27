@@ -8,6 +8,10 @@ use App\CmsClients\CmsClientInterface;
 use App\Modules\Manager\ModuleProcessorInterface;
 use App\Pages\Manager\PageProcessorInterface;
 use App\Context\RequestContext;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use App\Repositories\ContentRepository;
+use App\Modules\UniversalModule;
+
 
 class DataProcessor
 {
@@ -16,16 +20,20 @@ class DataProcessor
     private array $processors = [];
     private $pageProcessor;
     private string $language;
+    private RequestContext $context;
+    private UniversalModule $universalModule;
 
     public function __construct(
         ApiFetcher $apiFetcher,
-        CacheService $cacheService,
         CmsClientInterface $cmsClient,
-        RequestContext $context
+        RequestContext $context,
+        UniversalModule $universalModule
     ) {
         $this->apiFetcher = $apiFetcher;
         $this->cmsClient  = $cmsClient;
         $this->language = $context->getLanguage();
+        $this->context = $context;
+        $this->universalModule = $universalModule;
     }
 
     public function processPage(array $pageData, string $pageType): array
@@ -141,7 +149,8 @@ class DataProcessor
         }
 
         if (isset($this->pageProcessor) && method_exists($this->pageProcessor, 'fetchData')) {
-            $dataArray = $this->pageProcessor->fetchData($metadata, $this->apiFetcher, []);
+            // $dataArray = $this->pageProcessor->fetchData($metadata, $this->apiFetcher, []);
+            $dataArray = $this->pageProcessor->fetchData($metadata, []);
             $promises['page'] = Utils::all($dataArray);
         }
 
@@ -158,7 +167,8 @@ class DataProcessor
 
             if (isset($this->processors[$type]) && method_exists($this->processors[$type], 'fetchData')) {
                 $processor = $this->processors[$type];
-                $dataArray = $processor->fetchData($module, $this->apiFetcher, []);
+                // $dataArray = $processor->fetchData($module, $this->apiFetcher, []);
+                $dataArray = $processor->fetchData($module, []);
                 $promises['module_' . $index] = Utils::all($dataArray);
             }
 
@@ -210,7 +220,7 @@ class DataProcessor
             require_once $processorFile;
             $className = 'App\\Modules\\m_' . $type;
             if (class_exists($className)) {
-                $processor = new $className();
+                $processor = new $className($this->universalModule);
                 if ($processor instanceof ModuleProcessorInterface) {
                     $this->processors[$type] = $processor;
                 }

@@ -8,9 +8,13 @@ use App\CmsClients\CmsClientInterface;
 use App\CmsClients\Payload\PayloadCmsClient;
 use App\CmsClients\Sanity\SanityCmsClient;
 
+use App\Modules\UniversalModule;
+
 use App\Controllers\PageController;
 use App\Processors\DataProcessor;
 
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Factory\ServerRequestCreatorFactory; 
 use App\Context\RequestContext;
 
 use App\Controllers\CacheController;
@@ -18,7 +22,6 @@ use App\Controllers\ScraperController;
 use App\Controllers\SearchController;
 
 use App\Repositories\ContentRepository;
-
 use App\Utils\ApiFetcher;
 
 use Slim\Views\Twig;
@@ -105,13 +108,26 @@ return [
         return new RequestContext($language);
     },
 
+    Request::class => function () {
+        return ServerRequestCreatorFactory::create()->createServerRequestFromGlobals();
+    },
+
+    UniversalModule::class => function ($container) {
+        return new UniversalModule(
+            $container->get(ApiFetcher::class),
+            $container->get(Request::class),
+            $container->get(RequestContext::class),
+            $container->get(ContentRepository::class)
+        );
+    },
+
     // Register DataProcessor
     DataProcessor::class => function ($container) {
         return new DataProcessor(
             $container->get(ApiFetcher::class),
-            $container->get(CacheService::class),
             $container->get(CmsClientInterface::class),
-            $container->get(RequestContext::class)
+            $container->get(RequestContext::class),
+            $container->get(UniversalModule::class)
         );
     },
 
@@ -162,5 +178,4 @@ return [
             $container->get(ContentRepository::class)
         );
     },
-
 ];
