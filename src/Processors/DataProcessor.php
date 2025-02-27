@@ -10,7 +10,7 @@ use App\Pages\Manager\PageProcessorInterface;
 use App\Context\RequestContext;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Repositories\ContentRepository;
-use App\Modules\UniversalModule;
+use App\Modules\BaseModule;
 
 
 class DataProcessor
@@ -21,13 +21,13 @@ class DataProcessor
     private $pageProcessor;
     private string $language;
     private RequestContext $context;
-    private UniversalModule $universalModule;
+    private BaseModule $universalModule;
 
     public function __construct(
         ApiFetcher $apiFetcher,
         CmsClientInterface $cmsClient,
         RequestContext $context,
-        UniversalModule $universalModule
+        BaseModule $universalModule
     ) {
         $this->apiFetcher = $apiFetcher;
         $this->cmsClient  = $cmsClient;

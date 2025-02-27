@@ -8,7 +8,7 @@ use App\Utils\ApiFetcher;
 use GuzzleHttp\Promise\PromiseInterface;
 use App\Repositories\ContentRepository;
 
-class UniversalModule
+class BaseModule
 {
     protected ApiFetcher $apiFetcher;
     protected Request $request;

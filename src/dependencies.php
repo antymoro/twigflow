@@ -8,7 +8,7 @@ use App\CmsClients\CmsClientInterface;
 use App\CmsClients\Payload\PayloadCmsClient;
 use App\CmsClients\Sanity\SanityCmsClient;
 
-use App\Modules\UniversalModule;
+use App\Modules\BaseModule;
 
 use App\Controllers\PageController;
 use App\Processors\DataProcessor;
@@ -112,8 +112,8 @@ return [
         return ServerRequestCreatorFactory::create()->createServerRequestFromGlobals();
     },
 
-    UniversalModule::class => function ($container) {
-        return new UniversalModule(
+    BaseModule::class => function ($container) {
+        return new BaseModule(
             $container->get(ApiFetcher::class),
             $container->get(Request::class),
             $container->get(RequestContext::class),
@@ -127,7 +127,7 @@ return [
             $container->get(ApiFetcher::class),
             $container->get(CmsClientInterface::class),
             $container->get(RequestContext::class),
-            $container->get(UniversalModule::class)
+            $container->get(BaseModule::class)
         );
     },
 
