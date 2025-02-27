@@ -172,12 +172,16 @@ class PageController
             }
         }
 
+            // Check if the request is an AJAX request
+        $isAjax = $request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
+
         $html = $this->view->fetch($template, [
             'metadata' => $data['metadata'] ?? [],
             'modules' => $data['modules'] ?? [],
             'globals' => $data['globals'] ?? [],
             'translations' => $data['translations'] ?? [],
             'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
+            'isAjax' => $isAjax,
         ]);
 
         // Check if performance measurement is enabled
