@@ -68,7 +68,7 @@ class PageController
         $this->context->setLanguage($request->getAttribute('language') ?? null);
 
         if (!$collection || !$slug) {
-            return $this->renderError($response, 404, 'Collection or slug not specified');
+            return $this->render404($request, $response);
         }
 
         return $this->handlePageRequest($request, $response, $slug, $collection);
@@ -105,17 +105,22 @@ class PageController
         }
 
         // Cache processed data
-        $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $collection, $pageType) {
+        $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $collection, $pageType, $request, $response) {
             if ($collection !== null) {
                 $page = $this->cmsClient->getCollectionItem($collection, $slug);
             } else {
                 $page = $this->cmsClient->getPage($slug);
             }
             if (!$page) {
-                throw new \Exception('Page not found');
+                return $this->render404($request, $response);
             }
             return $this->dataProcessor->processPage($page, $pageType);
         });
+
+        // Return the response early (for example 404)
+        if ($pageData instanceof Response) {
+            return $pageData;
+        }
 
         return $this->renderPage($request, $response, $pageData);
     }
@@ -123,7 +128,7 @@ class PageController
     /**
      * Helper method to render data in a 'page.twig' template.
      */
-    private function renderPage(Request $request, Response $response, array $data): Response
+    private function renderPage(Request $request, Response $response, array $data, ?string $template=null): Response
     {
         // Check if 'json' parameter is set to true
         $queryParams = $request->getQueryParams();
@@ -142,15 +147,16 @@ class PageController
         $routesConfig = $request->getAttribute('routesConfig') ?? [];
         $collection = $request->getAttribute('collection') ?? null;
 
-        $template = 'page.twig';
-        foreach ($routesConfig as $config) {
-            if (isset($config['collection']) && $config['collection'] === $collection && isset($config['page'])) {
-                $template = 'pages/' . $config['page'] . '.twig';
-                break;
+        if (empty($template)) {
+            $template = 'page.twig';
+            foreach ($routesConfig as $config) {
+                if (isset($config['collection']) && $config['collection'] === $collection && isset($config['page'])) {
+                    $template = 'pages/' . $config['page'] . '.twig';
+                    break;
+                }
             }
         }
 
-        // Render the Twig template with data
         $html = $this->view->fetch($template, [
             'metadata' => $data['metadata'] ?? [],
             'modules' => $data['modules'] ?? [],
@@ -178,10 +184,12 @@ class PageController
     /**
      * Helper method to render error pages.
      */
-    private function renderError(Response $response, int $statusCode, string $message): Response
+    private function render404(Request $request, Response $response): Response
     {
-        return $this->view->render($response->withStatus($statusCode), '404.twig', [
-            'message' => $message
-        ]);
+        // Fetch data for the 404 page - globals etc.
+        $pageData = $this->dataProcessor->processPage([], '404');
+
+        // Render the 404 page using the renderPage method
+        return $this->renderPage($request, $response, $pageData, '404.twig')->withStatus(404);
     }
 }
