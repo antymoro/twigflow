@@ -88,15 +88,16 @@ class PageController
      */
     private function handlePageRequest(Request $request, Response $response, string $slug, ?string $collection = null): Response
     {
-        // Generate a cache key for the page
+        // Build unique cache key.
+        $language = $this->context->getLanguage() ?? '';
         $queryParams = $request->getQueryParams();
         $queryString = http_build_query($queryParams);
         $fullUrl = (string) $request->getUri()->withQuery($queryString);
+        $uniqueKey = 'page_' . md5($fullUrl . '_' . $language);
+        $shared404Key  = 'page_404_' . $this->context->getLanguage();
 
-        $cacheKey = 'page_' . md5($fullUrl);
-
+        // Determine expected page type.
         $routesConfig = $request->getAttribute('routesConfig') ?? [];
-
         $pageType = 'page';
         foreach ($routesConfig as $config) {
             if (isset($config['collection']) && $config['collection'] === $collection && isset($config['page'])) {
@@ -104,31 +105,45 @@ class PageController
             }
         }
 
-        // Cache processed data
-        $pageData = $this->cacheService->get($cacheKey, function () use ($slug, $collection, $pageType, $request, $response) {
-            if ($collection !== null) {
-                $page = $this->cmsClient->getCollectionItem($collection, $slug);
-            } else {
-                $page = $this->cmsClient->getPage($slug);
+        // Try retrieving from cache.
+        $pageData = $this->cacheService->fetch($uniqueKey);
+        if ($pageData !== null) {
+            // If cached item is a Response (404), return it directly.
+            if ($pageData instanceof Response) {
+                return $pageData;
             }
-            if (!$page) {
-                return $this->render404($request, $response);
-            }
-            return $this->dataProcessor->processPage($page, $pageType);
-        });
-
-        // Return the response early (for example 404)
-        if ($pageData instanceof Response) {
-            return $pageData;
+            return $this->renderPage($request, $response, $pageData);
         }
 
-        return $this->renderPage($request, $response, $pageData);
+        // Not cached: fetch from CMS.
+        if ($collection !== null) {
+            $page = $this->cmsClient->getCollectionItem($collection, $slug);
+        } else {
+            $page = $this->cmsClient->getPage($slug);
+        }
+
+        if ($page) {
+            // Valid page: process and store using unique key.
+            $pageData = $this->dataProcessor->processPage($page, $pageType);
+            $this->cacheService->set($uniqueKey, $pageData);
+            return $this->renderPage($request, $response, $pageData);
+        }
+
+        // Otherwise, it's a 404: retrieve (or store) under the standard key.
+        $pageData = $this->cacheService->fetch($shared404Key);
+
+        if (is_null($pageData)) {
+            $pageData = $this->get404Data($request);
+            $this->cacheService->set($shared404Key, $pageData);
+        }
+
+        return $this->renderPage($request, $response, $pageData, '404.twig')->withStatus(404);
     }
 
     /**
      * Helper method to render data in a 'page.twig' template.
      */
-    private function renderPage(Request $request, Response $response, array $data, ?string $template=null): Response
+    private function renderPage(Request $request, Response $response, array $data, ?string $template = null): Response
     {
         // Check if 'json' parameter is set to true
         $queryParams = $request->getQueryParams();
@@ -184,12 +199,12 @@ class PageController
     /**
      * Helper method to render error pages.
      */
-    private function render404(Request $request, Response $response): Response
+
+    private function get404Data(Request $request): array
     {
         // Fetch data for the 404 page - globals etc.
-        $pageData = $this->dataProcessor->processPage([], '404');
+        $data = $this->dataProcessor->processPage([], '404');
 
-        // Render the 404 page using the renderPage method
-        return $this->renderPage($request, $response, $pageData, '404.twig')->withStatus(404);
+        return $data;
     }
 }

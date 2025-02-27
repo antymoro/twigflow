@@ -41,6 +41,20 @@ class CacheService
         });
     }
 
+    public function fetch(string $key)
+    {
+        // Bypass caching if we are not in production
+        if (APP_ENV !== 'production') {
+            return null;
+        }
+
+        $item = $this->cache->getItem($key);
+        if (!$item->isHit()) {
+            return null;
+        }
+        return $item->get();
+    }
+
     public function set(string $key, $value, ?int $expiresAfter = null): bool
     {
         $expiresAfter = $expiresAfter ?? $this->defaultExpireTime;
