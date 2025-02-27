@@ -8,17 +8,17 @@ use Sanity\BlockContent;
 class SanityDataProcessor
 {
 
-    private string $language;
+    private RequestContext $context;
     private array $referenceIds = [];
 
     public function __construct(RequestContext $context)
     {
-        $this->language = $context->getLanguage();
+        $this->context = $context;
     }
 
     public function processDataRecursively($data): mixed
     {
-        $language = $this->language;
+        $language = $this->context->getLanguage();
 
         if (is_array($data)) {
             if (isset($data['_id']) && str_contains($data['_id'], 'drafts.')) {
@@ -28,10 +28,10 @@ class SanityDataProcessor
             switch ($data['_type'] ?? null) {
                 
                 case 'localeString':
-                    return $language && isset($data[$language]) ? $data[$language] : $data;
+                    return $language && isset($data[$language]) ? $data[$language] : '';
 
                 case 'localeText':
-                    return $language && isset($data[$language]) ? $data[$language] : $data;
+                    return $language && isset($data[$language]) ? $data[$language] : '';
 
                 case 'localeBlockContent':
                     $submodules = $this->processHtmlBlockModule($data, $language);
@@ -71,7 +71,7 @@ class SanityDataProcessor
 
     public function processHtmlBlockModule(array $module): array
     {
-        $language = $this->language;
+        $language = $this->context->getLanguage();
 
         $submodules = [];
         $currentBlocks = [];

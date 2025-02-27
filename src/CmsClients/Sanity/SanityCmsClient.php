@@ -15,7 +15,6 @@ class SanityCmsClient implements CmsClientInterface
     private SanityDataProcessor $dataProcessor;
     private SanityReferenceHandler $referenceHandler;
     private DocumentsHandler $documentsHandler;
-    private string $language;
 
     public function __construct(string $apiUrl, RequestContext $context)
     {
@@ -23,7 +22,6 @@ class SanityCmsClient implements CmsClientInterface
         $this->dataProcessor = new SanityDataProcessor($context);
         $this->referenceHandler = new SanityReferenceHandler($this->apiFetcher, json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true), $context);
         $this->documentsHandler = new DocumentsHandler();
-        $this->language = $context->getLanguage();
     }
 
     public function getPages(): array

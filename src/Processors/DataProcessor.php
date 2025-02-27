@@ -38,7 +38,7 @@ class DataProcessor
 
     public function processPage(array $pageData, string $pageType): array
     {
-        $language = $this->language;
+        $this->language = $this->context->getLanguage();
 
         // Step 1: Separate metadata and modules
         [$metadata, $modules] = $this->separateData($pageData);
