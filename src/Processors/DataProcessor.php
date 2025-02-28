@@ -275,8 +275,18 @@ class DataProcessor
     
         // Generate URLs for the page in other languages
         $supportedLanguages = $this->context->getSupportedLanguages();
+        $currentLanguage = $this->context->getLanguage();
+        $paths['languages'] = [];
+    
         foreach ($supportedLanguages as $language) {
             $paths['languages'][$language] = '/' . $language . $currentPath . '?lang=true';
+        }
+    
+        // Move the current language URL to the beginning of the array
+        if (isset($paths['languages'][$currentLanguage])) {
+            $currentLanguageUrl = $paths['languages'][$currentLanguage];
+            unset($paths['languages'][$currentLanguage]);
+            $paths['languages'] = [$currentLanguage => $currentLanguageUrl] + $paths['languages'];
         }
     
         return $paths;
