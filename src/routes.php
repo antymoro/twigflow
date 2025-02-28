@@ -8,13 +8,16 @@ use App\Controllers\ScraperController;
 use App\Controllers\SearchController;
 use App\Context\RequestContext;
 
-return function (App $app) {
+return function (App $app) use ($container) {
+
+    // Get the RequestContext object from the container
+    $context = $container->get(RequestContext::class);
+
     // Load supported languages from environment
     $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
     $defaultLanguage = $supportedLanguages[0] ?? 'en';
 
-    // Create the RequestContext object
-    $context = new RequestContext($defaultLanguage);
+    $context->setSupportedLanguages($supportedLanguages);
 
     // Add Language Middleware
     $app->add(new LanguageMiddleware($supportedLanguages, $defaultLanguage, $context));

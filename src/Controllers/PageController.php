@@ -124,7 +124,7 @@ class PageController
 
         if ($page) {
             // Valid page: process and store using unique key.
-            $pageData = $this->dataProcessor->processPage($page, $pageType);
+            $pageData = $this->dataProcessor->processPage($page, $pageType, $request);
             $this->cacheService->set($uniqueKey, $pageData);
             return $this->renderPage($request, $response, $pageData);
         }
@@ -152,7 +152,8 @@ class PageController
                 'metadata' => $data['metadata'] ?? [],
                 'modules' => $data['modules'] ?? [],
                 'globals' => $data['globals'] ?? [],
-                'translations' => $data['translations'] ?? []
+                'translations' => $data['translations'] ?? [],
+                'paths' => $data['paths'] ?? [],
             ];
             $payload = json_encode($jsonData, JSON_PRETTY_PRINT);
             $response->getBody()->write($payload);
@@ -181,6 +182,7 @@ class PageController
             'globals' => $data['globals'] ?? [],
             'translations' => $data['translations'] ?? [],
             'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
+            'paths' => $data['paths'] ?? [],
             'isAjax' => $isAjax,
         ]);
 
@@ -207,7 +209,7 @@ class PageController
     private function get404Data(Request $request): array
     {
         // Fetch data for the 404 page - globals etc.
-        $data = $this->dataProcessor->processPage([], '404');
+        $data = $this->dataProcessor->processPage([], '404', $request);
 
         return $data;
     }

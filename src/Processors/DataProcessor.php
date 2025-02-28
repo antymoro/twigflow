@@ -1,15 +1,14 @@
 <?php
+
 namespace App\Processors;
 
 use GuzzleHttp\Promise\Utils;
 use App\Utils\ApiFetcher;
-use App\Services\CacheService;
 use App\CmsClients\CmsClientInterface;
 use App\Modules\Manager\ModuleProcessorInterface;
 use App\Pages\Manager\PageProcessorInterface;
 use App\Context\RequestContext;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use App\Repositories\ContentRepository;
 use App\Modules\BaseModule;
 
 
@@ -36,7 +35,7 @@ class DataProcessor
         $this->universalModule = $universalModule;
     }
 
-    public function processPage(array $pageData, string $pageType): array
+    public function processPage(array $pageData, string $pageType, Request $request): array
     {
         $this->language = $this->context->getLanguage();
 
@@ -67,6 +66,9 @@ class DataProcessor
                 $pageData['metadata']
             );
         }
+
+        // Step 7: Generate paths
+        $pageData['paths'] = $this->generatePaths($request);
 
         // Ensure globals are set
         foreach ($globalsConfig as $key => $global) {
@@ -259,5 +261,24 @@ class DataProcessor
     private function fetchGlobal(string $query)
     {
         return $this->apiFetcher->asyncFetchFromApi($query);
+    }
+
+    private function generatePaths(Request $request): array
+    {
+        $paths = [];
+    
+        // Generate the home URL
+        $paths['home'] = (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage();
+    
+        // Get the current path from the request
+        $currentPath = $request->getUri()->getPath();
+    
+        // Generate URLs for the page in other languages
+        $supportedLanguages = $this->context->getSupportedLanguages();
+        foreach ($supportedLanguages as $language) {
+            $paths['languages'][$language] = '/' . $language . $currentPath . '?lang=true';
+        }
+    
+        return $paths;
     }
 }
