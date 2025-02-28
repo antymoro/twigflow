@@ -3,7 +3,6 @@
 namespace App\Middleware;
 
 use App\Context\RequestContext;
-
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -23,27 +22,50 @@ class LanguageMiddleware
 
     public function __invoke(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+
         if (empty($this->supportedLanguages)) {
             // No languages defined, proceed without modification
             return $handler->handle($request);
         }
 
-        // Determine the default language based on the browser's preferred language
-        $acceptLanguageHeader = $request->getHeaderLine('Accept-Language');
-        if ($acceptLanguageHeader) {
-            $preferredLanguages = explode(',', $acceptLanguageHeader);
-            foreach ($preferredLanguages as $preferredLanguage) {
-                $lang = substr($preferredLanguage, 0, 2); // Extract the language code
-                if (in_array($lang, $this->supportedLanguages)) {
-                    $this->defaultLanguage = $lang;
-                    break;
-                }
-            }
-        }
+        session_start();
 
         $uri = $request->getUri();
         $path = $uri->getPath();
         $segments = explode('/', trim($path, '/'));
+
+        // Extract the current language from the URL
+        $currentLanguage = $segments[0] ?? $this->defaultLanguage;
+
+        // Ensure the current language is in the array of supported languages
+        if (!in_array($currentLanguage, $this->supportedLanguages)) {
+            $currentLanguage = $this->defaultLanguage;
+        }
+
+        // Check for the ?lang=true query parameter
+        $queryParams = $request->getQueryParams();
+        if (isset($queryParams['lang']) && $queryParams['lang'] === 'true') {
+            // Save the current language as preferred in the session
+            $_SESSION['preferred_language'] = $currentLanguage;
+        }
+
+        // Fetch the preferred language from the session
+        if (isset($_SESSION['preferred_language']) && in_array($_SESSION['preferred_language'], $this->supportedLanguages)) {
+            $this->defaultLanguage = $_SESSION['preferred_language'];
+        } else {
+            // Determine the default language based on the browser's preferred language
+            $acceptLanguageHeader = $request->getHeaderLine('Accept-Language');
+            if ($acceptLanguageHeader) {
+                $preferredLanguages = explode(',', $acceptLanguageHeader);
+                foreach ($preferredLanguages as $preferredLanguage) {
+                    $lang = substr($preferredLanguage, 0, 2); // Extract the language code
+                    if (in_array($lang, $this->supportedLanguages)) {
+                        $this->defaultLanguage = $lang;
+                        break;
+                    }
+                }
+            }
+        }
 
         if (empty($segments[0]) || !in_array($segments[0], $this->supportedLanguages)) {
             // Redirect to the same URL with the default language prefix
