@@ -29,7 +29,7 @@ class SanityReferenceHandler
 
         $refIds = array_values(array_unique($referenceIds));
         $refIdsString = '["' . implode('","', $refIds) . '"]';
-        $query = '*[_id in ' . $refIdsString . ']{ _id, slug, _type, image, label, description, name, title }';
+        $query = '*[_id in ' . $refIdsString . ']{ _id, slug, _type, image, label, description, name, title, url }';
         $response = $this->apiFetcher->fetchFromApi($query);
         $result = $response['result'] ?? [];  
 
