@@ -2,6 +2,9 @@
 
 namespace App\CmsClients\Payload;
 
+use App\Parsers\LexicalRichTextParser;
+use App\Processors\RecursiveProcessors\LexicalRichTextFieldProcessor;
+use App\Processors\UniversalRecursiveProcessor;
 use App\Utils\ApiFetcher;
 use App\CmsClients\CmsClientInterface;
 use App\Context\RequestContext;
@@ -109,8 +112,15 @@ class PayloadCmsClient implements CmsClientInterface
         $this->updateGlobals($asyncData, $globalsConfig);
         $combinedData = $this->combineData($modules, $asyncData);
 
-        $processedCombined = $combinedData;
+        $lexicalParser = new LexicalRichTextParser();
+        $processors = [
+            new LexicalRichTextFieldProcessor($lexicalParser),
+        ];
 
+        $universalParser = new UniversalRecursiveProcessor($processors);
+        $combinedData = $universalParser->parseRecursive($combinedData);
+
+        $processedCombined = $combinedData;
         $this->updateModulesAsyncData($processedCombined);
 
         return $this->extractProcessedData($processedCombined);
