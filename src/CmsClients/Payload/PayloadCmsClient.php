@@ -60,9 +60,9 @@ class PayloadCmsClient implements CmsClientInterface
         $pageModules = $page['content'] ?? [];
 
         $modulesArray = array_map(function ($module) {
-            if (empty($module['is_published'])) {
-                return null;
-            }
+            // if (empty($module['is_published'])) {
+            //     return null;
+            // }
 
             $module['type'] = slugify($module['blockType'] ?? '');
             unset($module['blockType']);

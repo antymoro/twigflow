@@ -24,6 +24,7 @@ return function (App $app) use ($container) {
 
     // Load routing configuration from JSON file
     $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
+    if (empty($routesConfig)) $routesConfig = [];
 
     // Define a dynamic route for the homepage
     $app->get('/', \App\Controllers\PageController::class . ':showHomepage')

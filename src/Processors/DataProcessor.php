@@ -18,7 +18,7 @@ class DataProcessor
     private CmsClientInterface $cmsClient;
     private array $processors = [];
     private $pageProcessor;
-    private string $language;
+    private string|null $language;
     private RequestContext $context;
     private BaseModule $universalModule;
 
