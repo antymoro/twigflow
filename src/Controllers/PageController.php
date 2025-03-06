@@ -67,10 +67,6 @@ class PageController
         $slug = $args['slug'] ?? null;
         $this->context->setLanguage($request->getAttribute('language') ?? null);
 
-        if (!$collection || !$slug) {
-            return $this->render404($request, $response);
-        }
-
         return $this->handlePageRequest($request, $response, $slug, $collection);
     }
 
