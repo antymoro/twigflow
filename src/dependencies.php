@@ -36,10 +36,6 @@ use Dotenv\Dotenv;
  * to their respective implementations.
  */
 
-// Load environment variables from .env file
-$dotenv = Dotenv::createImmutable(BASE_PATH);
-$dotenv->load();
-
 // Determine environment (default to 'production' if not set)
 $environment = $_ENV['APP_ENV'] ?? 'production';
 $debug = $environment === 'development';
