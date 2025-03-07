@@ -1,14 +1,8 @@
 <?php
 
-// Define the base paths for the application
 define('BASE_PATH', __DIR__);
 define('TWIGFLOW_PATH', BASE_PATH . '/vendor/antymoro/twigflow');
 define('START_TIME', microtime(true));
-
-// Display errors for development
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 use DI\ContainerBuilder;
 use Slim\Factory\AppFactory;
@@ -19,16 +13,17 @@ use Monolog\Logger;
 require BASE_PATH . '/vendor/autoload.php';
 require TWIGFLOW_PATH . '/src/Utils/helpers.php';
 
-// Load environment variables from .env file
-$dotenv = Dotenv::createImmutable(BASE_PATH);
-$dotenv->load();
+$envFilePath = BASE_PATH . '/.env';
+if (file_exists($envFilePath)) {
+    $dotenv = Dotenv::createImmutable(BASE_PATH);
+    $dotenv->load();
+}
 
 // Determine environment (default to 'production' if not set)
 $environment = $_ENV['APP_ENV'] ?? 'production';
 define('APP_ENV', $environment);
 $displayErrorDetails = APP_ENV === 'development';
 
-// Set up error logging
 $logErrors = true;
 $logErrorDetails = true;
 
