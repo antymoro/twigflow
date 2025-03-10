@@ -237,7 +237,7 @@ class DataProcessor
             require_once $processorFile;
             $className = 'App\\Pages\\' . $type;
             if (class_exists($className)) {
-                $processor = new $className();
+                $processor = new $className($this->universalModule);
                 if ($processor instanceof PageProcessorInterface) {
                     $this->pageProcessor = $processor;
                 }
