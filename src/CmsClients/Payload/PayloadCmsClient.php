@@ -45,7 +45,7 @@ class PayloadCmsClient implements CmsClientInterface
 
     private function getPageBySlug(string $slug): ?array
     {
-        $query = '/pages?where[slug][equals]=' . $slug . '&depth=5';
+        $query = '/pages?where[slug][equals]=' . $slug;
         $response = $this->apiFetcher->fetchFromApi($query);
 
         foreach ($response['docs'] as $doc) {
