@@ -27,7 +27,6 @@ use App\Utils\ApiFetcher;
 use Slim\Views\Twig;
 use Twig\Loader\FilesystemLoader;
 use Twig\Extension\DebugExtension;
-use Dotenv\Dotenv;
 
 /**
  * This file is used to define and register dependencies for the application.

@@ -21,22 +21,50 @@ class SanityReferenceHandler
 
     public function fetchReferences(array $referenceIds): array
     {
-        $language = $this->language;
-
         if (empty($referenceIds)) {
             return [];
         }
-
+    
         $refIds = array_values(array_unique($referenceIds));
         $refIdsString = '["' . implode('","', $refIds) . '"]';
-        $query = '*[_id in ' . $refIdsString . ']{ _id, slug, _type, image, label, description, name, title, url }';
+    
+        $referenceFieldsPath = BASE_PATH . '/application/reference_fields.json';
+        $referenceFields = [];
+        $nestedReferences = [];
+    
+        if (file_exists($referenceFieldsPath)) {
+            $jsonContent = json_decode(file_get_contents($referenceFieldsPath), true) ?? [];
+            $referenceFields = $jsonContent['fields'] ?? [];
+            $nestedReferences = $jsonContent['nested_references'] ?? [];
+        }
+    
+        // Ensure default fields are included and not duplicated
+        $defaultFields = ['_id', 'slug', '_type'];
+        $referenceFields = array_unique(array_merge($defaultFields, $referenceFields));
+    
+        $fields = implode(', ', $referenceFields);
+    
+        // Add nested references to the query
+        $nestedFields = [];
+        foreach ($nestedReferences as $key => $nestedReference) {
+            if ($nestedReference['is_array']) {
+                $nestedFields[] = '"' . $key . '": ' . $key . '[]->{' . implode(', ', $nestedReference['fields']) . '}';
+            } else {
+                $nestedFields[] = '"' . $key . '": ' . $key . '->{' . implode(', ', $nestedReference['fields']) . '}';
+            }
+        }
+        $nestedFieldsString = implode(', ', $nestedFields);
+    
+        $query = '*[_id in ' . $refIdsString . ']{ ' . $fields . ($nestedFieldsString ? ', ' . $nestedFieldsString : '') . ' }';
+    
         $response = $this->apiFetcher->fetchFromApi($query);
-        $result = $response['result'] ?? [];  
-
+        $result = $response['result'] ?? [];
+    
         $mapping = [];
         foreach ($result as $doc) {
             $mapping[$doc['_id']] = $doc;
         }
+    
         return $mapping;
     }
 
