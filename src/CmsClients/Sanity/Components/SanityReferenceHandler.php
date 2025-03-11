@@ -134,7 +134,7 @@ class SanityReferenceHandler
 
             if (isset($data['_type']) && $data['_type'] === 'image'
             && isset($data['asset']['_ref']) && str_contains($data['asset']['_ref'], 'image-') ) {
-                $data = $this->constructImageUrl($data['asset']['_ref']);
+                $data['asset'] = $this->constructImageUrl($data['asset']['_ref']);
             }
 
             if (is_array($data)) {
