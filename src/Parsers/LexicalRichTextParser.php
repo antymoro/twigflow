@@ -75,7 +75,7 @@ class LexicalRichTextParser
                     break;
                 case 'quote':
                     $content = $this->renderNodes($node['children'] ?? []);
-                    $html .= '<blockquote>' . $content . '</blockquote>';
+                    $html .= '<blockquote><p>' . $content . '</p></blockquote>';
                     $previousWasLinebreak = false;
                     break;
                 case 'linebreak':
