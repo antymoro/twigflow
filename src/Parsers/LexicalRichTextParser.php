@@ -40,13 +40,22 @@ class LexicalRichTextParser
                     break;
                 case 'text':
                     $text = htmlspecialchars($node['text'] ?? '', ENT_QUOTES, 'UTF-8');
-                    // Apply formatting if available.
-                    if (!empty($node['bold'])) {
+                    $format = $node['format'] ?? 0;
+    
+                    // apply formatting if available.
+                    if ($format & 1) {
                         $text = '<strong>' . $text . '</strong>';
                     }
-                    if (!empty($node['italic'])) {
+                    if ($format & 2) {
                         $text = '<em>' . $text . '</em>';
                     }
+                    if ($format & 4) {
+                        $text = '<u>' . $text . '</u>';
+                    }
+                    if ($format & 8) {
+                        $text = '<s>' . $text . '</s>';
+                    }
+    
                     $html .= $text;
                     break;
                 case 'list':
