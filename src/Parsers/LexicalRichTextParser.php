@@ -1,5 +1,4 @@
 <?php
-// filepath: /Users/daniel/code/huncwot/frameworks/twigflow/src/Parsers/LexicalRichTextParser.php
 
 namespace App\Parsers;
 
