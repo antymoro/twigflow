@@ -84,6 +84,27 @@ class ApiFetcher
         }
     }
 
+    public function postToApi(array $requestBody): bool
+    {
+
+        $url = 'https://' . $_ENV['API_ID'] . '.api.sanity.io/v2022-03-07/data/mutate/' . $_ENV['API_ENV'];
+
+        try {
+            $response = $this->client->post($url, [
+                'json' => $requestBody,
+                'headers' => [
+                    'Authorization' => 'Bearer ' .$_ENV['API_KEY'],
+                ],
+            ]);
+
+            return $response->getStatusCode() === 200;
+        } catch (\Exception $e) {
+            dd($e->getResponse()->getBody()->getContents());
+            error_log("Failed to post documents to Sanity CMS: " . $e->getMessage());
+            return false;
+        }
+    }
+
     private function buildUrl(string $query, array $options): string
     {
         return $this->cmsClient->urlBuilder($this->apiUrl, $query, $options);

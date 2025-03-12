@@ -8,18 +8,23 @@ use App\CmsClients\Sanity\Components\SanityReferenceHandler;
 use App\CmsClients\Sanity\Components\DocumentsHandler;
 use App\CmsClients\CmsClientInterface;
 use App\Context\RequestContext;
+
+use GuzzleHttp\Client;
+
 class SanityCmsClient implements CmsClientInterface
 {
     private ApiFetcher $apiFetcher;
     private SanityDataProcessor $dataProcessor;
     private SanityReferenceHandler $referenceHandler;
     private DocumentsHandler $documentsHandler;
+    private array $routes;
 
     public function __construct(string $apiUrl, RequestContext $context)
     {
         $this->apiFetcher = new ApiFetcher($apiUrl, $this);
         $this->dataProcessor = new SanityDataProcessor($context);
-        $this->referenceHandler = new SanityReferenceHandler($this->apiFetcher, json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true), $context);
+        $this->routes = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
+        $this->referenceHandler = new SanityReferenceHandler($this->apiFetcher, $this->routes, $context);
         $this->documentsHandler = new DocumentsHandler();
     }
 
@@ -31,11 +36,35 @@ class SanityCmsClient implements CmsClientInterface
 
     public function getAllDocuments() : array
     {
-        $response = $this->apiFetcher->fetchFromApi('*[]', ['disable_cache' => true]);
-        // $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title, createdAt, updatedAt}', ['disable_cache' => true]);
-        $response = $response['result'] ?? [];
+        $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title, _createdAt, _updatedAt}', ['disable_cache' => true]);
+        $collections = [];
 
-        return $response;
+        foreach ($this->routes as $route) {
+            if (isset($route['collection'])) {
+                $collections[] = $route['collection'];
+            }
+        }
+
+        $allDocuments = $response['result'] ?? [];
+
+        $documentsToScrap = [];
+
+        foreach ($allDocuments as $document) {
+            if (in_array($document['_type'], $collections) && !str_contains($document['_id'], 'drafts.')) {
+                $documentsToScrap[] = $document;
+            }
+        }
+
+        return $documentsToScrap;
+
+    }
+
+
+    public function fetchAllJobs(): array
+    {
+        $query = '*[_type == "jobs"]';
+        $response = $this->apiFetcher->fetchFromApi($query);
+        return $response['result'] ?? [];
     }
 
     public function getDocumentsUrls(): array
@@ -156,5 +185,57 @@ class SanityCmsClient implements CmsClientInterface
         // Sanity-specific URL construction logic
         $encodedQuery = urlencode($query);
         return rtrim($baseUrl, '/') . ltrim($encodedQuery, '/');
+    }
+
+    public function getPostData(array $documents): array
+    {
+        $mutations = array_map(function ($document) {
+            return [
+                'createOrReplace' => $this->formatDocumentForJobsCollection($document),
+            ];
+        }, $documents);
+
+        return ['mutations' => $mutations];
+    }
+
+    private function formatDocumentForJobsCollection(array $document): array
+    {
+        return [
+            '_type' => 'jobs',
+            'document_id' => $document['_id'],
+            'created_at' => $document['_createdAt'],
+            'type' => $document['_type'],
+            'slug' => $document['slug']['current'] ?? '',
+            'status' => 'pending',
+            'updated_at' => $document['_updatedAt'],
+        ];
+    }
+
+    public function compareDocumentsWithJobs(array $documents, array $jobs): array
+    {
+        $jobsById = [];
+        foreach ($jobs as $job) {
+            $jobsById[$job['document_id']] = $job;
+        }
+    
+        $newOrUpdatedDocuments = [];
+        foreach ($documents as $document) {
+            $documentId = $document['_id'];
+            $documentUpdatedAt = strtotime($document['_updatedAt']);
+    
+            if (!isset($jobsById[$documentId])) {
+                $newOrUpdatedDocuments[] = $document;
+            } else {
+                $job = $jobsById[$documentId];
+                $jobUpdatedAt = strtotime($job['updated_at']);
+                $jobStatus = $job['status'];
+    
+                if ($documentUpdatedAt > $jobUpdatedAt && $jobStatus !== 'pending') {
+                    $newOrUpdatedDocuments[] = $document;
+                }
+            }
+        }
+    
+        return $newOrUpdatedDocuments;
     }
 }

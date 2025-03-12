@@ -171,7 +171,8 @@ return [
     ScraperController::class => function ($container) {
         return new ScraperController(
             $container->get(CmsClientInterface::class),
-            $container->get(ScraperService::class)
+            $container->get(ScraperService::class),
+            $container->get(ApiFetcher::class)
         );
     },
 
