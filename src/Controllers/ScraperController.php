@@ -27,7 +27,9 @@ class ScraperController
 
     public function savePendingJobs(Request $request, Response $response): Response
     {
-        $documents = $this->cmsClient->getDocumentsUrls();
+    //     $documents = $this->cmsClient->getDocumentsUrls();
+        $documents = $this->cmsClient->getAllDocuments();
+        dd($documents);
         $this->scraperService->savePendingJobs($documents);
         $response->getBody()->write('Jobs saving completed successfully.');
         return $response->withStatus(200);

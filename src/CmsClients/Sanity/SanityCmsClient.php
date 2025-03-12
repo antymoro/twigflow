@@ -8,7 +8,6 @@ use App\CmsClients\Sanity\Components\SanityReferenceHandler;
 use App\CmsClients\Sanity\Components\DocumentsHandler;
 use App\CmsClients\CmsClientInterface;
 use App\Context\RequestContext;
-
 class SanityCmsClient implements CmsClientInterface
 {
     private ApiFetcher $apiFetcher;
@@ -30,11 +29,20 @@ class SanityCmsClient implements CmsClientInterface
         return $response['result'] ?? [];
     }
 
+    public function getAllDocuments() : array
+    {
+        $response = $this->apiFetcher->fetchFromApi('*[]', ['disable_cache' => true]);
+        // $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title, createdAt, updatedAt}', ['disable_cache' => true]);
+        $response = $response['result'] ?? [];
+
+        return $response;
+    }
+
     public function getDocumentsUrls(): array
     {
         $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
 
-        $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title}', ['disable_cache' => true]);
+        $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title, _createdAt, _updatedAt}', ['disable_cache' => true]);
         $response = $response['result'] ?? [];
 
         $allDocuments = [];
