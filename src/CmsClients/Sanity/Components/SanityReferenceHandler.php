@@ -113,7 +113,12 @@ class SanityReferenceHandler
     {
         $filename = preg_replace('/^image-/', '', $imageId);
         $filename = preg_replace('/-(jpg|png|webp|svg)$/', '.$1', $filename);
-        return 'https://cdn.sanity.io/images/isvajgup/production/' . $filename;
+
+        $apiId = $_ENV['API_ID'] ?? '';
+        $apiEnv = $_ENV['API_ENV'] ?? '';
+
+        return 'https://cdn.sanity.io/images/' . $apiId . '/' . $apiEnv . '/' . $filename;
+
     }
 
     
