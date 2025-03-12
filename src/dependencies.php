@@ -20,6 +20,7 @@ use App\Context\RequestContext;
 use App\Controllers\CacheController;
 use App\Controllers\ScraperController;
 use App\Controllers\SearchController;
+use App\Controllers\ApiController;
 
 use App\Repositories\ContentRepository;
 use App\Utils\ApiFetcher;
@@ -142,6 +143,12 @@ return [
     CacheController::class => function ($container) {
         // Create and return a new CacheController instance with dependencies
         return new CacheController($container->get(CacheService::class));
+    },
+
+    // Register ApiController
+    ApiController::class => function ($container) {
+        // Create and return a new CacheController instance with dependencies
+        return new CacheController($container->get(ApiFetcher::class),);
     },
 
     // Register DatabaseService

@@ -6,6 +6,7 @@ use Slim\App;
 use App\Middleware\LanguageMiddleware;
 use App\Controllers\ScraperController;
 use App\Controllers\SearchController;
+use App\Controllers\ApiController;
 use App\Context\RequestContext;
 
 return function (App $app) use ($container) {
@@ -43,6 +44,13 @@ return function (App $app) use ($container) {
     // Route to handle search requests
     $app->get('/api/search', SearchController::class . ':search')
         ->setName('search');
+
+    // Dynamic route for API endpoints
+    $app->get('/api/{endpoint}', function ($request, $response, $args) use ($container) {
+        $apiFetcher = $container->get(\App\Utils\ApiFetcher::class);
+        $controller = new ApiController($apiFetcher);
+        return $controller->handle($request, $response, $args);
+    })->setName('api.handle');
 
     // Route to handle dynamic pages using the PageController with slug
     $app->get('/{slug}', \App\Controllers\PageController::class . ':show')
