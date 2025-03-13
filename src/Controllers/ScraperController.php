@@ -23,7 +23,7 @@ class ScraperController
 
     public function processPendingJobs(Request $request, Response $response): Response
     {
-        $jobs = $this->cmsClient->fetchAllJobs(1);
+        $jobs = $this->cmsClient->fetchAllJobs(3);
 
         // filter jobs that have status pending
         $pendingJobs = array_filter($jobs, function ($job) {
