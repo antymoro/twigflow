@@ -39,6 +39,7 @@ class SanityCmsClient implements CmsClientInterface
     public function getAllDocuments() : array
     {
         $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title, _createdAt, _updatedAt}', ['disable_cache' => true]);
+        // dd($response);
         $collections = [];
 
         foreach ($this->routes as $route) {
@@ -46,6 +47,8 @@ class SanityCmsClient implements CmsClientInterface
                 $collections[] = $route['collection'];
             }
         }
+
+        $collections[] = 'page';
 
         $allDocuments = $response['result'] ?? [];
 
@@ -63,7 +66,7 @@ class SanityCmsClient implements CmsClientInterface
 
     public function getScrapedDocuments() : array
     {
-        $query = '*[_type == "documents"]';
+        $query = '*[_type == "scraped_documents"]';
         $response = $this->apiFetcher->fetchFromApi($query);
         return $response['result'] ?? [];
     }
@@ -239,6 +242,8 @@ class SanityCmsClient implements CmsClientInterface
                 // Document is in scraped documents, compare updated_at timestamp
                 $scrapedDocument = $scrapedDocumentsById[$documentId];
                 $scrapedDocumentUpdatedAt = strtotime($scrapedDocument['updated_at']);
+
+                dd($scrapedDocumentUpdatedAt);
     
                 if ($documentUpdatedAt > $scrapedDocumentUpdatedAt) {
                     // Document has a newer updated_at timestamp, add it to jobs
@@ -282,7 +287,7 @@ class SanityCmsClient implements CmsClientInterface
                     '_id' => $uniqueId,
                     'title' => $document['title'],
                     'content' => $document['content'],
-                    'document_id' => $document['document_id'],
+                    'document_id' => $document['id'],
                     'created_at' => date('c'),
                     'type' => $document['type'],
                     'slug' => $document['slug'],

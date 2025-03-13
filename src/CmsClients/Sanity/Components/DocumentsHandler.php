@@ -35,7 +35,6 @@ class DocumentsHandler
                 $urls[$language] = $url;
             }
 
-
             $documents[] = [
                 'id' => $document['_id'],
                 'title' => $document['title'],
