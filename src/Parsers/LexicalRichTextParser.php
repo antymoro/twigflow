@@ -36,9 +36,9 @@ class LexicalRichTextParser
                     $previousWasLinebreak = false;
                     break;
                 case 'heading':
-                    $level = isset($node['level']) ? (int)$node['level'] : 1;
+                    $tag = isset($node['tag']) ? $node['tag'] : 'h1';
                     $content = $this->renderNodes($node['children'] ?? []);
-                    $html .= '<h' . $level . '>' . $content . '</h' . $level . '>';
+                    $html .= '<' . $tag . '>' . $content . '</' . $tag . '>';
                     $previousWasLinebreak = false;
                     break;
                 case 'text':
