@@ -52,36 +52,36 @@ class ContentRepository
 
     public function searchContent(string $query, ?string $language = null): array
     {
-        if ($language) {
-            $stmt = $this->db->prepare('
-                SELECT *, 
-                CASE 
-                    WHEN title LIKE :query THEN 2 
-                    ELSE 1 
-                END AS relevance 
-                FROM documents 
-                WHERE (title LIKE :query OR content LIKE :query) AND language = :language 
-                ORDER BY relevance DESC
-            ');
-            $stmt->execute([
-                ':query' => '%' . $query . '%',
-                ':language' => $language,
-            ]);
-        } else {
-            $stmt = $this->db->prepare('
-                SELECT *, 
-                CASE 
-                    WHEN title LIKE :query THEN 2 
-                    ELSE 1 
-                END AS relevance 
-                FROM documents 
-                WHERE title LIKE :query OR content LIKE :query 
-                ORDER BY relevance DESC
-            ');
-            $stmt->execute([
-                ':query' => '%' . $query . '%',
-            ]);
-        }
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // if ($language) {
+        //     $stmt = $this->db->prepare('
+        //         SELECT *, 
+        //         CASE 
+        //             WHEN title LIKE :query THEN 2 
+        //             ELSE 1 
+        //         END AS relevance 
+        //         FROM documents 
+        //         WHERE (title LIKE :query OR content LIKE :query) AND language = :language 
+        //         ORDER BY relevance DESC
+        //     ');
+        //     $stmt->execute([
+        //         ':query' => '%' . $query . '%',
+        //         ':language' => $language,
+        //     ]);
+        // } else {
+        //     $stmt = $this->db->prepare('
+        //         SELECT *, 
+        //         CASE 
+        //             WHEN title LIKE :query THEN 2 
+        //             ELSE 1 
+        //         END AS relevance 
+        //         FROM documents 
+        //         WHERE title LIKE :query OR content LIKE :query 
+        //         ORDER BY relevance DESC
+        //     ');
+        //     $stmt->execute([
+        //         ':query' => '%' . $query . '%',
+        //     ]);
+        // }
+        // return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

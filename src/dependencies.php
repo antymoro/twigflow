@@ -178,7 +178,8 @@ return [
 
     SearchController::class => function ($container) {
         return new SearchController(
-            $container->get(ContentRepository::class)
+            $container->get(ContentRepository::class),
+            $container->get(CmsClientInterface::class)
         );
     },
 ];

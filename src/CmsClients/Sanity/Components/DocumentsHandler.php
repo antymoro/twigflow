@@ -15,28 +15,36 @@ class DocumentsHandler
     {
         $documents = [];
 
-        if (isset($document['_type']) && isset($this->collections[$document['_type']])
-            && isset($document['slug']['current']) && !str_contains($document['_id'], 'drafts')) {
-            $slug = $document['slug']['current'];
+        // dd($this->collections);
+
+        // dd($document);
+
+        // dd($document);
+
+        // dd($this->collections);
+
+        if (isset($document['type']) && isset($this->collections[$document['type']])
+            && isset($document['slug']) && !str_contains($document['_id'], 'drafts')
+        ) {
+            $slug = $document['slug'];
+            $urls = [];
+
             foreach ($supportedLanguages as $language) {
                 $urlPrefix = $language ? '/' . $language : '';
-                $url = $urlPrefix . $this->collections[$document['_type']]['path'] . '/' . $slug;
-
-                $title = $document['title'][$language] ?? null;
-
-                if (!$title) {
-                    continue;
-                }
-
-                $documents[] = [
-                    'title' => $title,
-                    'url' => $url,
-                    'type' => $document['_type'],
-                    'language' => $language,
-                    'slug' => $slug,
-                    'cms_id' => $document['_id']
-                ];
+                $url = $urlPrefix . $this->collections[$document['type']]['path'] . '/' . $slug;
+                $urls[$language] = $url;
             }
+
+
+            $documents[] = [
+                'id' => $document['_id'],
+                'title' => $document['title'],
+                'urls' => $urls,
+                'type' => $document['type'],
+                'languages' => $supportedLanguages,
+                'slug' => $slug,
+                'document_id' => $document['_id']
+            ];
         }
 
         return $documents;

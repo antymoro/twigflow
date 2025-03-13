@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\CmsClients\CmsClientInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Repositories\ContentRepository;
@@ -9,10 +10,12 @@ use App\Repositories\ContentRepository;
 class SearchController
 {
     private ContentRepository $contentRepository;
+    private CmsClientInterface $cmsClient;
 
-    public function __construct(ContentRepository $contentRepository)
+    public function __construct(ContentRepository $contentRepository, CmsClientInterface $cmsClient)
     {
         $this->contentRepository = $contentRepository;
+        $this->cmsClient = $cmsClient;
     }
 
     public function search(Request $request, Response $response, array $args): Response
@@ -22,11 +25,13 @@ class SearchController
 
         $language = $request->getAttribute('language') ?? null;
 
-        $results = $this->contentRepository->searchContent($query, $language);
+        // $results = $this->contentRepository->searchContent($query, $language);
 
+        $results = $this->cmsClient->searchContent($query, $language);
+        
         // Clean up content and highlight query term in the results
         foreach ($results as &$result) {
-            $result['content'] = $this->highlightSections($this->cleanContent($result['content']), $query);
+            $result['content'] = $this->highlightSections($this->cleanContent($result['content'][$language]), $query);
         }
 
         $response->getBody()->write(json_encode($results));

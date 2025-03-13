@@ -38,8 +38,13 @@ return function (App $app) use ($container) {
     // Route to trigger scraping process
     $app->get('/api/process-jobs', [ScraperController::class, 'processPendingJobs'])
         ->setName('scraper.processPendingJobs');
+        
     $app->get('/api/make-jobs', [ScraperController::class, 'savePendingJobs'])
         ->setName('scraper.savePendingJobs');
+
+    $app->get('/api/clear-jobs', [ScraperController::class, 'clearPendingJobs'])
+        ->setName('scraper.clearPendingJobs');
+
 
     // Route to handle search requests
     $app->get('/api/search', SearchController::class . ':search')

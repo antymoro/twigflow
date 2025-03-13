@@ -18,6 +18,7 @@ class SanityCmsClient implements CmsClientInterface
     private SanityReferenceHandler $referenceHandler;
     private DocumentsHandler $documentsHandler;
     private array $routes;
+    private RequestContext $context;
 
     public function __construct(string $apiUrl, RequestContext $context)
     {
@@ -26,6 +27,7 @@ class SanityCmsClient implements CmsClientInterface
         $this->routes = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
         $this->referenceHandler = new SanityReferenceHandler($this->apiFetcher, $this->routes, $context);
         $this->documentsHandler = new DocumentsHandler();
+        $this->context = $context;
     }
 
     public function getPages(): array
@@ -59,24 +61,27 @@ class SanityCmsClient implements CmsClientInterface
 
     }
 
-
-    public function fetchAllJobs(): array
+    public function getScrapedDocuments() : array
     {
-        $query = '*[_type == "jobs"]';
+        $query = '*[_type == "documents"]';
         $response = $this->apiFetcher->fetchFromApi($query);
         return $response['result'] ?? [];
     }
 
-    public function getDocumentsUrls(): array
+    public function fetchAllJobs($quantity = null): array
     {
-        $supportedLanguages = array_filter(explode(',', $_ENV['SUPPORTED_LANGUAGES'] ?? ''));
+        $query = '*[_type == "jobs"]' . ($quantity ? '[0...' . $quantity . ']' : '');
+        $response = $this->apiFetcher->fetchFromApi($query);
+        return $response['result'] ?? [];
+    }
 
-        $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title, _createdAt, _updatedAt}', ['disable_cache' => true]);
-        $response = $response['result'] ?? [];
+    public function getDocumentsUrls($jobs): array
+    {
+        $supportedLanguages = $this->context->getSupportedLanguages();
 
         $allDocuments = [];
 
-        foreach ($response as $document) {
+        foreach ($jobs as $document) {
             $documents = $this->documentsHandler->prepareDocument($document, $supportedLanguages);
             $allDocuments = array_merge($allDocuments, $documents);
         }
@@ -202,6 +207,7 @@ class SanityCmsClient implements CmsClientInterface
     {
         return [
             '_type' => 'jobs',
+            'title' => $document['title'],
             'document_id' => $document['_id'],
             'created_at' => $document['_createdAt'],
             'type' => $document['_type'],
@@ -211,31 +217,102 @@ class SanityCmsClient implements CmsClientInterface
         ];
     }
 
-    public function compareDocumentsWithJobs(array $documents, array $jobs): array
+    public function compareDocumentsWithScrapedDocuments(array $documents, array $scrapedDocuments): array
     {
-        $jobsById = [];
-        foreach ($jobs as $job) {
-            $jobsById[$job['document_id']] = $job;
+        $scrapedDocumentsById = [];
+        $newOrUpdatedDocuments = [];
+    
+        // Index scraped documents by document_id
+        foreach ($scrapedDocuments as $scrapedDocument) {
+            $scrapedDocumentsById[$scrapedDocument['document_id']] = $scrapedDocument;
         }
     
-        $newOrUpdatedDocuments = [];
+        // Compare documents with scraped documents
         foreach ($documents as $document) {
             $documentId = $document['_id'];
             $documentUpdatedAt = strtotime($document['_updatedAt']);
     
-            if (!isset($jobsById[$documentId])) {
+            if (!isset($scrapedDocumentsById[$documentId])) {
+                // Document is not in scraped documents, add it to jobs
                 $newOrUpdatedDocuments[] = $document;
             } else {
-                $job = $jobsById[$documentId];
-                $jobUpdatedAt = strtotime($job['updated_at']);
-                $jobStatus = $job['status'];
+                // Document is in scraped documents, compare updated_at timestamp
+                $scrapedDocument = $scrapedDocumentsById[$documentId];
+                $scrapedDocumentUpdatedAt = strtotime($scrapedDocument['updated_at']);
     
-                if ($documentUpdatedAt > $jobUpdatedAt && $jobStatus !== 'pending') {
+                if ($documentUpdatedAt > $scrapedDocumentUpdatedAt) {
+                    // Document has a newer updated_at timestamp, add it to jobs
                     $newOrUpdatedDocuments[] = $document;
                 }
             }
         }
     
         return $newOrUpdatedDocuments;
+    }
+
+    public function clearAllJobs(): bool
+    {
+        $query = '*[_type == "jobs"]';
+        $response = $this->apiFetcher->fetchFromApi($query);
+        $jobs = $response['result'] ?? [];
+
+        if (empty($jobs)) {
+            return true; // No jobs to delete
+        }
+
+        $mutations = array_map(function ($job) {
+            return [
+                'delete' => ['id' => $job['_id']],
+            ];
+        }, $jobs);
+
+        $requestBody = ['mutations' => $mutations];
+
+        return $this->apiFetcher->postToApi($requestBody);
+    }
+
+    public function saveDocument(array $document): bool
+    {
+        $uniqueId = $document['document_id'] . '-scraped';
+
+        $mutations = [
+            [
+                'createOrReplace' => [
+                    '_type' => 'scraped_documents',
+                    '_id' => $uniqueId,
+                    'title' => $document['title'],
+                    'content' => $document['content'],
+                    'document_id' => $document['document_id'],
+                    'created_at' => date('c'),
+                    'type' => $document['type'],
+                    'slug' => $document['slug'],
+                    'updated_at' => date('c'),
+                ],
+            ],
+        ];
+
+        $requestBody = ['mutations' => $mutations];
+
+        return $this->apiFetcher->postToApi($requestBody);
+    }
+
+    public function removeJob(string $jobId): bool
+    {
+        $mutations = [
+            [
+                'delete' => ['id' => $jobId],
+            ],
+        ];
+
+        $requestBody = ['mutations' => $mutations];
+
+        return $this->apiFetcher->postToApi($requestBody);
+    }
+
+    public function searchContent(string $query, string $language): array
+    {
+        $sanityQuery = '*[_type == "scraped_documents" && content.' . $language . ' match "' . $query . '"]';
+        $response = $this->apiFetcher->fetchFromApi($sanityQuery);
+        return $response['result'] ?? [];
     }
 }

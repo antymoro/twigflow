@@ -23,7 +23,19 @@ class ScraperController
 
     public function processPendingJobs(Request $request, Response $response): Response
     {
-        $this->scraperService->processPendingJobs();
+        $jobs = $this->cmsClient->fetchAllJobs(1);
+
+        // filter jobs that have status pending
+        $pendingJobs = array_filter($jobs, function ($job) {
+            return $job['status'] === 'pending';
+        });
+
+        $pendingJobs = $this->cmsClient->getDocumentsUrls($pendingJobs);
+
+        //TODO add batching here & update the status of the job to processing
+        $this->scraperService->processPendingJobs($pendingJobs);
+
+
         $response->getBody()->write('Job processing completed successfully.');
         return $response->withStatus(200);
     }
@@ -32,9 +44,10 @@ class ScraperController
     {
         try {
             $documents = $this->cmsClient->getAllDocuments();
-            $jobs = $this->cmsClient->fetchAllJobs();
+            $scrapedDocuments = $this->cmsClient->getScrapedDocuments();
+            // $jobs = $this->cmsClient->fetchAllJobs();
 
-            $newOrUpdatedDocuments = $this->cmsClient->compareDocumentsWithJobs($documents, $jobs);
+            $newOrUpdatedDocuments = $this->cmsClient->compareDocumentsWithScrapedDocuments($documents, $scrapedDocuments);
 
             $batchSize = 50;
             $batches = array_chunk($newOrUpdatedDocuments, $batchSize);
@@ -62,4 +75,13 @@ class ScraperController
             return $response->withStatus(500);
         }
     }
+
+    public function clearPendingJobs(Request $request, Response $response): Response
+    {
+        $jobs = $this->cmsClient->clearAllJobs();
+
+        $response->getBody()->write('Job processing completed successfully.');
+        return $response->withStatus(200);
+    }
+
 }
