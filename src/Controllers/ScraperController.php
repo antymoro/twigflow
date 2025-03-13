@@ -45,9 +45,10 @@ class ScraperController
         try {
             $documents = $this->cmsClient->getAllDocuments();
             $scrapedDocuments = $this->cmsClient->getScrapedDocuments();
-            // $jobs = $this->cmsClient->fetchAllJobs();
+            $jobs = $this->cmsClient->fetchAllJobs();
 
             $newOrUpdatedDocuments = $this->cmsClient->compareDocumentsWithScrapedDocuments($documents, $scrapedDocuments);
+            $newOrUpdatedDocuments = $this->cmsClient->compareDocumentsWithPendingJobs($newOrUpdatedDocuments, $jobs);
 
             $batchSize = 50;
             $batches = array_chunk($newOrUpdatedDocuments, $batchSize);

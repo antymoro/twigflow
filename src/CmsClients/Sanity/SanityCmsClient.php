@@ -208,8 +208,9 @@ class SanityCmsClient implements CmsClientInterface
 
     private function formatDocumentForJobsCollection(array $document): array
     {
-        return [
+        $formattedDoc = [
             '_type' => 'jobs',
+            '_id' => $document['_id'] . '-job',
             'title' => $document['title'],
             'document_id' => $document['_id'],
             'created_at' => $document['_createdAt'],
@@ -218,6 +219,8 @@ class SanityCmsClient implements CmsClientInterface
             'status' => 'pending',
             'updated_at' => $document['_updatedAt'],
         ];
+
+        return $formattedDoc;
     }
 
     public function compareDocumentsWithScrapedDocuments(array $documents, array $scrapedDocuments): array
@@ -242,8 +245,6 @@ class SanityCmsClient implements CmsClientInterface
                 // Document is in scraped documents, compare updated_at timestamp
                 $scrapedDocument = $scrapedDocumentsById[$documentId];
                 $scrapedDocumentUpdatedAt = strtotime($scrapedDocument['updated_at']);
-
-                dd($scrapedDocumentUpdatedAt);
     
                 if ($documentUpdatedAt > $scrapedDocumentUpdatedAt) {
                     // Document has a newer updated_at timestamp, add it to jobs
@@ -255,14 +256,37 @@ class SanityCmsClient implements CmsClientInterface
         return $newOrUpdatedDocuments;
     }
 
+    public function compareDocumentsWithPendingJobs(array $documents, array $pendingJobs): array
+    {
+        $scrapedDocumentsById = [];
+        $newOrUpdatedDocuments = [];
+    
+        // Index scraped documents by document_id
+        foreach ($pendingJobs as $scrapedDocument) {
+            $scrapedDocumentsById[$scrapedDocument['document_id']] = $scrapedDocument;
+        }
+    
+        // Compare documents with scraped documents
+        foreach ($documents as $document) {
+            $documentId = $document['_id'];
+    
+            if (!isset($scrapedDocumentsById[$documentId])) {
+                $newOrUpdatedDocuments[] = $document;
+            }
+        }
+    
+        return $newOrUpdatedDocuments;
+    }
+
     public function clearAllJobs(): bool
     {
-        $query = '*[_type == "jobs"]';
+        $query = '*[_type == "scraped_documents"]';
+        // $query = '*[_type == "jobs"]';
         $response = $this->apiFetcher->fetchFromApi($query);
         $jobs = $response['result'] ?? [];
 
         if (empty($jobs)) {
-            return true; // No jobs to delete
+            return true;
         }
 
         $mutations = array_map(function ($job) {
@@ -287,11 +311,11 @@ class SanityCmsClient implements CmsClientInterface
                     '_id' => $uniqueId,
                     'title' => $document['title'],
                     'content' => $document['content'],
-                    'document_id' => $document['id'],
-                    'created_at' => date('c'),
+                    'document_id' => $document['document_id'],
+                    'created_at' => $document['created_at'],
                     'type' => $document['type'],
                     'slug' => $document['slug'],
-                    'updated_at' => date('c'),
+                    'updated_at' => $document['updated_at'],
                 ],
             ],
         ];

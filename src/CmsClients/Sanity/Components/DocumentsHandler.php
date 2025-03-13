@@ -42,7 +42,9 @@ class DocumentsHandler
                 'type' => $document['type'],
                 'languages' => $supportedLanguages,
                 'slug' => $slug,
-                'document_id' => $document['_id']
+                'document_id' => $document['document_id'],
+                'created_at' => $document['created_at'],
+                'updated_at' => $document['updated_at'],
             ];
         }
 
