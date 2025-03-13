@@ -1,0 +1,513 @@
+{
+    "_createdAt": "2025-02-11T16:55:27Z",
+    "_id": "1af07ca9-4f50-4f60-a423-602989066591",
+    "_rev": "5JztQkPEk5zTE0Nw85keLF",
+    "_type": "news",
+    "_updatedAt": "2025-03-12T12:49:50Z",
+    "aside": {
+      "_type": "aside_cta_content",
+      "label": {
+        "_type": "localeString",
+        "en": "Watch Webinar"
+      },
+      "sublabel": {
+        "_type": "localeText",
+        "en": "Donec sed odio dui. Maecenas sed diam eget risus varius blandit sit amet non magna."
+      },
+      "url": "https://www.worldwildlife.org/webinars/conservation-insiders-series/insiders-series-the-vitality-of-forests-why-forests-are-essential-to-human-health"
+    },
+    "event_date": "2025-02-28",
+    "event_location": "Fresno, CA",
+    "image": {
+      "_type": "imageBlock",
+      "image": {
+        "_type": "image",
+        "asset": {
+          "_ref": "image-822ef1b1c62907e4fe2482c569d14ff18b017cbf-4096x2731-jpg",
+          "_type": "reference"
+        },
+        "crop": {
+          "_type": "sanity.imageCrop",
+          "bottom": 0,
+          "left": 0,
+          "right": 0,
+          "top": 0
+        },
+        "hotspot": {
+          "_type": "sanity.imageHotspot",
+          "height": 0.35434149903327994,
+          "width": 0.24708369006849318,
+          "x": 0.8764581549657534,
+          "y": 0.5168525224711005
+        }
+      }
+    },
+    "location": {
+      "_ref": "62750475-7023-4209-a8c0-be6fbda6e6a7",
+      "_type": "reference"
+    },
+    "modules": [
+      {
+        "_key": "bbd61778b0b0",
+        "_type": "text_inner",
+        "menu_label": {
+          "_type": "localeString",
+          "en": "Test"
+        },
+        "set_menu_label": false,
+        "text": {
+          "_type": "localeBlockContent",
+          "en": [
+            {
+              "_key": "ef0a6cf81652",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "0de33f743e5c",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Lorem Consectetur Malesuada"
+                }
+              ],
+              "markDefs": [],
+              "style": "h2"
+            },
+            {
+              "_key": "56c426c34487",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "ceb387ca43ab",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Lorem Consectetur Malesuada"
+                }
+              ],
+              "markDefs": [],
+              "style": "h3"
+            },
+            {
+              "_key": "98110888d311",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "c21e2a4cdf45",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Lorem Consectetur Malesuada"
+                }
+              ],
+              "markDefs": [],
+              "style": "h4"
+            },
+            {
+              "_key": "8e4beb30d960",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "eed7b651c928",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Nullam quis risus eget urna mollis ornare vel eu leo. Nulla vitae elit libero, a pharetra augue. Maecenas sed diam eget risus varius blandit sit amet non magna. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec id elit non mi porta gravida at eget metus."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "c27453f82029",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "99776d8ff387",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Maecenas faucibus mollis interdum. Nulla vitae elit libero, a pharetra augue. Donec id elit non mi porta gravida at eget metus. Nullam quis risus eget urna mollis ornare vel eu leo. Vestibulum id ligula porta felis euismod semper. Vestibulum id ligula porta felis euismod semper."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "e3c1ccdac6f7",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "2c269353f4a6",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Donec id elit non mi porta gravida at eget metus. Etiam porta sem malesuada magna mollis euismod. Sed posuere consectetur est at lobortis. Donec ullamcorper nulla non metus auctor fringilla."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "23c2d952bc70",
+              "_type": "quoteBlock",
+              "image": {
+                "_type": "image",
+                "asset": {
+                  "_ref": "image-5ecfa24b0f2afb6a392d456112838e98086b26c4-1054x790-png",
+                  "_type": "reference"
+                }
+              },
+              "label": "Noah Bennett",
+              "sublabel": {
+                "_type": "localeString",
+                "en": "CEO"
+              },
+              "text": {
+                "_type": "localeText",
+                "en": "Cras mattis consectetur purus sit amet fermentum. Nullam id dolor id nibh ultricies vehicula ut id elit. Integer posuere erat a ante venenatis dapibus posuere velit aliquet."
+              }
+            },
+            {
+              "_key": "fa92e0b863a9",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "f8a1dda0995a",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Arcu urna pellentesque ac cras platea ipsum feugiat odio nullam? Commodo condimentum quam curabitur habitasse vestibulum aliquam quis."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "7de9a86b9774",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "1f90039bbafe",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Porta montes vivamus ut laoreet pretium nisi leo dis. Cubilia a dis at aptent in, ante efficitur?"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            }
+          ]
+        }
+      },
+      {
+        "_key": "554a02ed358e",
+        "_type": "image_full",
+        "image": {
+          "_type": "imageBlock",
+          "caption": {
+            "_type": "localeString",
+            "en": "Praesent commodo cursus magna, vel scelerisque nisl consectetur et."
+          },
+          "image": {
+            "_type": "image",
+            "asset": {
+              "_ref": "image-85f69bfeb501bb6d5b2716b6dc339baa2a1ce9d1-4032x3024-jpg",
+              "_type": "reference"
+            }
+          }
+        }
+      },
+      {
+        "_key": "61b42036ad3a",
+        "_type": "text_inner",
+        "set_menu_label": false,
+        "text": {
+          "_type": "localeBlockContent",
+          "en": [
+            {
+              "_key": "74a2480f660c",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "ae6ca9b682c3",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Praesent parturient posuere senectus in eros nullam vestibulum. Bibendum cras faucibus nulla nascetur a platea sagittis per. Suspendisse ligula ultrices arcu malesuada purus quisque congue consectetur purus."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "85674cdf9368",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "cffaeedd29f9",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Senectus tincidunt dolor; tincidunt enim nisl diam?"
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "b9b0ee90eb7c",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "0e3c13773f0f",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Aeuismod justo duis conubia etiam vulputate aliquet lacus."
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "f622c938e054",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "9f5b678192b7",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Risus rutrum urna ridiculus non odio penatibus."
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "200ad8f1aad7",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "f8dc63e4d973",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Congue porttitor feugiat sem dis adipiscing."
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "26a9b708dcac",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "8a3ad0d06933",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Amet adipiscing amet cubilia fames dui habitasse hac."
+                }
+              ],
+              "level": 1,
+              "listItem": "bullet",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "a46925717c96",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "10e06c58a58e",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Arcu urna pellentesque ac cras platea ipsum feugiat odio nullam? Commodo condimentum quam curabitur habitasse vestibulum aliquam quis."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "9cedf0868d27",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "41c393b31d78",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Porta montes vivamus ut laoreet pretium nisi leo dis. Cubilia a dis at aptent in, ante efficitur?"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "6380fbd01100",
+              "_type": "youtube",
+              "id": "oJNPAPA_fOM"
+            },
+            {
+              "_key": "15d57559df98",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "2a169aba2720",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Lorem ipsum odor amet, consectetuer adipiscing elit. Aest rhoncus pellentesque primis fusce nullam. Ridiculus pretium penatibus vestibulum purus faucibus tincidunt. Viverra cubilia augue mattis cras ex diam erat pulvinar. Hendrerit lobortis dictumst nisl scelerisque mi metus hac tempus eget."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "645c8f4dc15e",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "ebe88e06fd7d",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Senectus tincidunt dolor; tincidunt enim nisl diam?"
+                }
+              ],
+              "level": 1,
+              "listItem": "number",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "b0ab25d1f661",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "0d1ce811ca9b",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Aeuismod justo duis conubia etiam vulputate aliquet lacus."
+                }
+              ],
+              "level": 1,
+              "listItem": "number",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "dacbd548dfed",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "f80eaeafcf19",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Risus rutrum urna ridiculus non odio penatibus."
+                }
+              ],
+              "level": 1,
+              "listItem": "number",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "125679ba0fc9",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "95368d876748",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Congue porttitor feugiat sem dis adipiscing."
+                }
+              ],
+              "level": 2,
+              "listItem": "number",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "e12040a14da7",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "fab76264a394",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Amet adipiscing amet cubilia fames dui habitasse hac."
+                }
+              ],
+              "level": 1,
+              "listItem": "number",
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "af36df727b3d",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "02813558c307",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Arcu urna pellentesque ac cras platea ipsum feugiat odio nullam? Commodo condimentum quam curabitur habitasse vestibulum aliquam quis."
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "9e6f7b33d94c",
+              "_type": "block",
+              "children": [
+                {
+                  "_key": "40f1c7d10aa9",
+                  "_type": "span",
+                  "marks": [],
+                  "text": "Porta montes vivamus ut laoreet pretium nisi leo dis. Cubilia a dis at aptent in, ante efficitur?"
+                }
+              ],
+              "markDefs": [],
+              "style": "normal"
+            },
+            {
+              "_key": "798b3c5c5fc0",
+              "_type": "accordion",
+              "items": [
+                {
+                  "_key": "e7205cfdebd7",
+                  "text": {
+                    "_type": "localeText",
+                    "en": "Lorem ipsum et dolor color"
+                  },
+                  "title": {
+                    "_type": "localeString",
+                    "en": "Credits"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "published": "2025-02-14",
+    "slug": {
+      "_type": "slug",
+      "current": "concert"
+    },
+    "title": {
+      "_type": "localeString",
+      "en": "A Night of Magic: Music, Lights, and Unforgettable Moments Under the Stars"
+    },
+    "topics": [
+      {
+        "_key": "8deb7b9ec62c",
+        "_ref": "548f7542-fac7-40f4-ae51-290db33eb2aa",
+        "_type": "reference"
+      },
+      {
+        "_key": "4992cc76c593",
+        "_ref": "9a4c624e-290b-49d4-a424-26fd5b26be2b",
+        "_type": "reference"
+      }
+    ],
+    "type": "event"
+  }

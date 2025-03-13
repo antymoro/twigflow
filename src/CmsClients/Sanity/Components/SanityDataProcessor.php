@@ -44,10 +44,16 @@ class SanityDataProcessor
                         }
                     }
 
-                    return [
+                    $blockModule = [
                         'type' => 'text',
                         'submodules' => $submodules
                     ];
+
+                    $blockModule = $this->processDataRecursively($blockModule, $language);
+
+                    return $blockModule;
+
+
 
                 case 'reference':
                     if (isset($data['_ref']) && !str_contains($data['_ref'], 'image-')) {
@@ -72,20 +78,21 @@ class SanityDataProcessor
     public function processHtmlBlockModule(array $module): array
     {
         $language = $this->context->getLanguage();
-
+    
         $submodules = [];
         $currentBlocks = [];
-
+    
         if ($language) {
             $module = $module[$language] ?? [];
         }
-
+    
         foreach ($module as $item) {
             if (is_array($item)) {
                 switch ($item['_type'] ?? null) {
                     case 'block':
                         $currentBlocks[] = $item;
                         break;
+                        
                     case 'imageBlock':
                         if (!empty($currentBlocks)) {
                             $submodules[] = [
@@ -99,17 +106,76 @@ class SanityDataProcessor
                             'content' => $item
                         ];
                         break;
+                        
+                    case 'youtube':
+                    case 'video':
+                        if (!empty($currentBlocks)) {
+                            $submodules[] = [
+                                'type' => 'text',
+                                'content' => $currentBlocks
+                            ];
+                            $currentBlocks = [];
+                        }
+                        $submodules[] = [
+                            'type' => 'video',
+                            'content' => $item
+                        ];
+                        break;
+                        
+                    case 'quoteBlock':
+                        if (!empty($currentBlocks)) {
+                            $submodules[] = [
+                                'type' => 'text',
+                                'content' => $currentBlocks
+                            ];
+                            $currentBlocks = [];
+                        }
+                        $submodules[] = [
+                            'type' => 'quote',
+                            'content' => $item
+                        ];
+                        break;
+                        
+                    case 'accordion':
+                        if (!empty($currentBlocks)) {
+                            $submodules[] = [
+                                'type' => 'text',
+                                'content' => $currentBlocks
+                            ];
+                            $currentBlocks = [];
+                        }
+                        $submodules[] = [
+                            'type' => 'accordion',
+                            'content' => $item
+                        ];
+                        break;
+                        
+                    case 'text_inner':
+                        if (!empty($currentBlocks)) {
+                            $submodules[] = [
+                                'type' => 'text',
+                                'content' => $currentBlocks
+                            ];
+                            $currentBlocks = [];
+                        }
+                        
+                        // process the nested text content
+                        if (isset($item['text']) && isset($item['text']['_type']) && $item['text']['_type'] === 'localeBlockContent') {
+                            $nestedSubmodules = $this->processHtmlBlockModule($item['text']);
+                            $submodules = array_merge($submodules, $nestedSubmodules);
+                        }
+                        break;
                 }
             }
         }
-
+    
         if (!empty($currentBlocks)) {
             $submodules[] = [
                 'type' => 'text',
                 'content' => $currentBlocks
             ];
         }
-
+    
         return $submodules;
     }
 
