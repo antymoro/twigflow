@@ -173,7 +173,7 @@ class PayloadCmsClient implements CmsClientInterface
         return rtrim($baseUrl, '/') . '/' . ltrim($query, '/');
     }
 
-    public function getDocumentsUrls(): array
+    public function getDocumentsUrls($jobs): array
     {
         return [];
     }
