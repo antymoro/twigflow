@@ -84,6 +84,13 @@ class LexicalRichTextParser
                         $previousWasLinebreak = true;
                     }
                     break;
+                case 'link':
+                    $url = $node['fields']['url'] ?? '#';
+                    $newTab = (!empty($node['fields']['newTab']) && $node['fields']['newTab']) ? ' target="_blank"' : '';
+                    $content = $this->renderNodes($node['children'] ?? []);
+                    $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '"' . $newTab . '>' . $content . '</a>';
+                    $previousWasLinebreak = false;
+                    break;
                 default:
                     // for any unknown type, try to process its children.
                     if (isset($node['children'])) {
@@ -94,12 +101,10 @@ class LexicalRichTextParser
             }
         }
 
-        // ensure the HTML ends with a closing paragraph tag if it started with one
-        if (substr($html, -3) === '<p>') {
-            $html = substr($html, 0, -3);
-        } elseif (substr($html, -4) === '</p>') {
-            $html .= '</p>';
-        }
+        // // ensure the HTML ends with a closing paragraph tag if it started with one
+        // if (!preg_match('#</p>\s*$#', $html)) {
+        //     $html .= '</p>';
+        // }
 
         return $html;
     }
