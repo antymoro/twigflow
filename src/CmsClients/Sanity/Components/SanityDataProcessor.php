@@ -182,37 +182,61 @@ class SanityDataProcessor
     private function convertBlocksToHtml(array $data): string
     {
         $html = '';
-        $listStack = [];
-
+        $listStack = []; // Stack to track open lists (each element is the tag to close)
+        
         foreach ($data as $item) {
-            if (is_array($item)) {
-                if (isset($item['_type']) && $item['_type'] === 'block') {
-                    if (isset($item['listItem'])) {
-                        $listType = $item['listItem'] === 'bullet' ? 'ul' : 'ol';
-                        if (empty($listStack) || end($listStack) !== $listType) {
-                            if (!empty($listStack)) {
-                                $html .= '</' . array_pop($listStack) . '>';
-                            }
-                            $html .= '<' . $listType . '>';
-                            $listStack[] = $listType;
-                        }
-                        $html .= '<li>' . BlockContent::toHtml($item) . '</li>';
-                    } else {
-                        while (!empty($listStack)) {
-                            $html .= '</' . array_pop($listStack) . '>';
-                        }
-                        $html .= BlockContent::toHtml($item);
-                    }
-                } else {
-                    $html .= $this->convertBlocksToHtml($item);
+            if (!is_array($item)) {
+                continue;
+            }
+            
+            // Check if this is a list item (block with a "listItem" value)
+            if (isset($item['_type']) && $item['_type'] === 'block' && isset($item['listItem'])) {
+                // Determine the desired nested level (default to 1)
+                $newLevel = isset($item['level']) ? (int) $item['level'] : 1;
+                // Determine list tag based on listItem type
+                $listTag = $item['listItem'] === 'bullet' ? 'ul' : 'ol';
+    
+                // If new level is deeper than current, open new nested lists
+                while (count($listStack) < $newLevel) {
+                    $html .= "<{$listTag}>";
+                    $listStack[] = $listTag;
                 }
+                // If new level is shallower, close extra open lists
+                while (count($listStack) > $newLevel) {
+                    $tag = array_pop($listStack);
+                    $html .= "</{$tag}>";
+                }
+                // (Optional) If at the same level but list type changes, close the current list and open a new one.
+                if (!empty($listStack)) {
+                    $currentTag = end($listStack);
+                    if ($currentTag !== $listTag) {
+                        // Close current list and open new one
+                        $html .= "</" . array_pop($listStack) . ">";
+                        $html .= "<{$listTag}>";
+                        $listStack[] = $listTag;
+                    }
+                }
+                
+                // Render the list item. Using BlockContent::toHtml($item) for inner HTML.
+                $content = BlockContent::toHtml($item);
+                $html .= "<li>{$content}</li>";
+            } else {
+                // This item is not part of a list. Close any open lists.
+                while (!empty($listStack)) {
+                    $tag = array_pop($listStack);
+                    $html .= "</{$tag}>";
+                }
+                // Render the item normally.
+                $html .= BlockContent::toHtml($item);
             }
         }
-
+        
+        // Close any remaining open lists.
         while (!empty($listStack)) {
-            $html .= '</' . array_pop($listStack) . '>';
+            $tag = array_pop($listStack);
+            $html .= "</{$tag}>";
         }
-
+        
         return $html;
     }
 
