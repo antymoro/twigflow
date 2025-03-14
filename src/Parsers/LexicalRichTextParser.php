@@ -62,17 +62,17 @@ class LexicalRichTextParser
                     $html .= $text;
                     $previousWasLinebreak = false;
                     break;
-                case 'list':
-                    $tag = !empty($node['ordered']) ? 'ol' : 'ul';
-                    $content = $this->renderNodes($node['children'] ?? []);
-                    $html .= '<' . $tag . '>' . $content . '</' . $tag . '>';
-                    $previousWasLinebreak = false;
-                    break;
-                case 'listItem':
-                    $content = $this->renderNodes($node['children'] ?? []);
-                    $html .= '<li>' . $content . '</li>';
-                    $previousWasLinebreak = false;
-                    break;
+                    case 'list':
+                        $tag = $node['listType'] === 'number' ? 'ol' : 'ul';
+                        $content = $this->renderNodes($node['children'] ?? []);
+                        $html .= '<' . $tag . '>' . $content . '</' . $tag . '>';
+                        $previousWasLinebreak = false;
+                        break;
+                    case 'listitem':
+                        $content = $this->renderNodes($node['children'] ?? []);
+                        $html .= '<li>' . $content . '</li>';
+                        $previousWasLinebreak = false;
+                        break;
                 case 'quote':
                     $content = $this->renderNodes($node['children'] ?? []);
                     $html .= '<blockquote><p>' . $content . '</p></blockquote>';
