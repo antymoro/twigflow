@@ -86,7 +86,8 @@ class LexicalRichTextParser
                     break;
                 case 'link':
                     $url = $node['fields']['url'] ?? '#';
-                    $newTab = (!empty($node['fields']['newTab']) && $node['fields']['newTab']) ? ' target="_blank"' : '';
+                    $newTab = (str_starts_with($url, 'http')) ? ' target="_blank"' : 
+                        ((!empty($node['fields']['newTab']) && $node['fields']['newTab']) ? ' target="_blank"' : '');
                     $content = $this->renderNodes($node['children'] ?? []);
                     $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '"' . $newTab . '>' . $content . '</a>';
                     $previousWasLinebreak = false;
