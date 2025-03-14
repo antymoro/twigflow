@@ -53,7 +53,8 @@ class SanityDataProcessor
 
                     return $blockModule;
 
-
+                case 'localeSimpleBlockContent':
+                    return $this->convertBlocksToHtml($data);
 
                 case 'reference':
                     if (isset($data['_ref']) && !str_contains($data['_ref'], 'image-')) {
