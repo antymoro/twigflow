@@ -147,7 +147,8 @@ class PageController
             $jsonData = [
                 'metadata' => $data['metadata'] ?? [],
                 'modules' => $data['modules'] ?? [],
-                'globals' => $data['globals'] ?? [],
+                'globals' => array_merge($data['globals'] ?? [], $this->context->getGlobalContext()),
+                'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
                 'translations' => $data['translations'] ?? [],
                 'paths' => $data['paths'] ?? [],
             ];
@@ -169,13 +170,13 @@ class PageController
             }
         }
 
-            // Check if the request is an AJAX request
+        // Check if the request is an AJAX request
         $isAjax = $request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
 
         $html = $this->view->fetch($template, [
             'metadata' => $data['metadata'] ?? [],
             'modules' => $data['modules'] ?? [],
-            'globals' => $data['globals'] ?? [],
+            'globals' => array_merge($data['globals'] ?? [], $this->context->getGlobalContext()),
             'translations' => $data['translations'] ?? [],
             'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
             'paths' => $data['paths'] ?? [],

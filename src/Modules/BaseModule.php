@@ -14,6 +14,7 @@ class BaseModule
     protected Request $request;
     protected RequestContext $context;
     protected ContentRepository $contentRepository;
+    private array $globalContext = [];
 
     public function __construct(ApiFetcher $apiFetcher, Request $request, RequestContext $context, ContentRepository $contentRepository)
     {
@@ -100,5 +101,15 @@ class BaseModule
         }
 
         return $url;
+    }
+
+    public function moveToGlobalContext(array $module, string $key, bool $asSubarray): void
+    {
+        $this->context->moveToGlobalContext($module, $key, $asSubarray);
+    }
+
+    public function getGlobalContext(): array
+    {
+        return $this->context->getGlobalContext();
     }
 }
