@@ -31,12 +31,52 @@ class CacheController
     public function clearCache(Request $request, Response $response, array $args): Response
     {
         $this->cacheService->clearAll();
-
+    
         $twigCacheDir = BASE_PATH . '/cache/twig';
         $this->clearTwigCache($twigCacheDir);
 
-        $response->getBody()->write("Cache cleared successfully.");
-        return $response;
+        $configPath = BASE_PATH . '/application/cache_regeneration.json';
+        $regeneratedPaths = [];
+        if (file_exists($configPath)) {
+            $config = json_decode(file_get_contents($configPath), true);
+            $paths = $config['regeneration_paths'] ?? [];
+    
+            $baseUrl = $this->getBaseUrl($request);
+            foreach ($paths as $path) {
+                $url = rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
+                $this->regenerateCache($url);
+                $regeneratedPaths[] = $url;
+            }
+        }
+    
+        $responseData = [
+            'status' => 'success',
+            'message' => 'Cache cleared successfully.',
+            'regenerated_urls' => $regeneratedPaths,
+        ];
+    
+        $response->getBody()->write(json_encode($responseData, JSON_PRETTY_PRINT));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+
+    private function regenerateCache(string $url): void
+    {
+        try {
+            $client = new \GuzzleHttp\Client();
+            $client->getAsync($url, ['http_errors' => false])->then(
+                function ($response) use ($url) {
+                    if ($response->getStatusCode() !== 200) {
+                        error_log("Cache regeneration request to {$url} returned status code: " . $response->getStatusCode());
+                    }
+                },
+                function ($exception) use ($url) {
+                    error_log("Failed to regenerate cache for URL {$url}: " . $exception->getMessage());
+                }
+            );
+        } catch (\Exception $e) {
+            error_log("Failed to initiate async cache regeneration for URL {$url}: " . $e->getMessage());
+        }
     }
 
     private function clearTwigCache(string $cacheDir): void
@@ -54,5 +94,20 @@ class CacheController
 
             rmdir($cacheDir);
         }
+    }
+
+    private function getBaseUrl($request): string
+    {
+        $uri = $request->getUri();
+        $scheme = $uri->getScheme();
+        $host = $uri->getHost();
+        $port = $uri->getPort();
+
+        $url = $scheme . '://' . $host;
+        if ($port) {
+            $url .= ':' . $port;
+        }
+
+        return $url;
     }
 }
