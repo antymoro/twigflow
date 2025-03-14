@@ -55,9 +55,9 @@ class LexicalRichTextParser
                     if ($format & 4) {
                         $text = '<u>' . $text . '</u>';
                     }
-                    if ($format & 8) {
-                        $text = '<s>' . $text . '</s>';
-                    }
+                    // if ($format & 8) {
+                    //     $text = '<s>' . $text . '</s>';
+                    // }
 
                     $html .= $text;
                     $previousWasLinebreak = false;
