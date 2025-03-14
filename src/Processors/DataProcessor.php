@@ -75,6 +75,8 @@ class DataProcessor
             $pageData['globals'][$key] = $pageData['globals'][$key] ?? [];
         }
 
+        $pageData['globals'] = array_merge($pageData['globals'], $this->context->getGlobalContext());
+
         return $pageData;
     }
 

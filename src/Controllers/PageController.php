@@ -118,7 +118,7 @@ class PageController
             $page = $this->cmsClient->getPage($slug);
         }
 
-        if ($page) {
+        if ($page && !empty($page['result'])) {
             // Valid page: process and store using unique key.
             $pageData = $this->dataProcessor->processPage($page, $pageType, $request);
             $this->cacheService->set($uniqueKey, $pageData);
@@ -147,7 +147,7 @@ class PageController
             $jsonData = [
                 'metadata' => $data['metadata'] ?? [],
                 'modules' => $data['modules'] ?? [],
-                'globals' => array_merge($data['globals'] ?? [], $this->context->getGlobalContext()),
+                'globals' => $data['globals'] ?? [],
                 'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
                 'translations' => $data['translations'] ?? [],
                 'paths' => $data['paths'] ?? [],
@@ -176,7 +176,7 @@ class PageController
         $html = $this->view->fetch($template, [
             'metadata' => $data['metadata'] ?? [],
             'modules' => $data['modules'] ?? [],
-            'globals' => array_merge($data['globals'] ?? [], $this->context->getGlobalContext()),
+            'globals' => $data['globals'] ?? [],
             'translations' => $data['translations'] ?? [],
             'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
             'paths' => $data['paths'] ?? [],
