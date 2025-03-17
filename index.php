@@ -7,8 +7,10 @@ define('START_TIME', microtime(true));
 use DI\ContainerBuilder;
 use Slim\Factory\AppFactory;
 use Slim\Views\TwigMiddleware;
+use Slim\Middleware\ErrorMiddleware;
 use Dotenv\Dotenv;
 use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 
 require BASE_PATH . '/vendor/autoload.php';
 require TWIGFLOW_PATH . '/src/Utils/helpers.php';
@@ -42,17 +44,23 @@ $app->addRoutingMiddleware();
 // Create a logger
 $logger = new Logger('app');
 
-// Define the log directory and file pattern
-$logDir = BASE_PATH . '/logs';
-$logFilePattern = $logDir . '/app.log';
-
-// Ensure the log directory exists
-if (!file_exists($logDir)) {
-    mkdir($logDir, 0777, true);
+$logToStdout = ($_ENV['LOG_TO_STDOUT'] ?? 'false') === 'true';
+if ($logToStdout) {
+    // Log to standard output for Azure App Service or docker logs
+    $logger->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
+} else {
+    // Define the log directory and file pattern for file-based logging
+    $logDir = BASE_PATH . '/logs';
+    $logFilePattern = $logDir . '/app.log';
+    
+    // Ensure the log directory exists
+    if (!file_exists($logDir)) {
+        mkdir($logDir, 0777, true);
+    }
+    
+    // Use RotatingFileHandler to create a new log file each day
+    $logger->pushHandler(new \Monolog\Handler\RotatingFileHandler($logFilePattern, 0, Logger::DEBUG));
 }
-
-// Use RotatingFileHandler to create a new log file each day
-$logger->pushHandler(new \Monolog\Handler\RotatingFileHandler($logFilePattern, 0, Logger::DEBUG));
 
 // Add Error Middleware (displayErrorDetails, logErrors, logErrorDetails)
 $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $logErrorDetails, $logger);

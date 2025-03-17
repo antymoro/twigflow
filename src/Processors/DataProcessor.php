@@ -18,6 +18,7 @@ class DataProcessor
     private CmsClientInterface $cmsClient;
     private array $processors = [];
     private $pageProcessor;
+    private $baseProcessor;
     private string|null $language;
     private RequestContext $context;
     private BaseModule $universalModule;
@@ -61,7 +62,14 @@ class DataProcessor
 
         // Step 6: Process the page using the page processor (if available)
         if (isset($this->pageProcessor)) {
-            $pageData['metadata'] = $this->pageProcessor->process(
+            $pageData = $this->pageProcessor->process(
+                $pageData,
+                $pageData['metadata']
+            );
+        }
+
+        if (isset($this->baseProcessor)) {
+            $pageData = $this->baseProcessor->process(
                 $pageData,
                 $pageData['metadata']
             );
@@ -146,17 +154,34 @@ class DataProcessor
         $language = $this->language;
 
         $promises = [];
+        $pagePromises = [];
+        $basePromises = [];
         $index = 0;
 
+        // load processor specific for the current page (eg. news)
         if (!isset($this->pageProcessor)) {
             $this->loadPageProcessor($pageType);
         }
 
-        if (isset($this->pageProcessor) && method_exists($this->pageProcessor, 'fetchData')) {
-            // $dataArray = $this->pageProcessor->fetchData($metadata, $this->apiFetcher, []);
-            $dataArray = $this->pageProcessor->fetchData($metadata, []);
-            $promises['page'] = Utils::all($dataArray);
+        // load processor universl for all pages
+        if (!isset($this->baseProcessor)) {
+            $this->loadPageProcessor('base', true);
         }
+
+        // Gather raw promises from both processors first
+        $pagePromises = [];
+        if (isset($this->pageProcessor) && method_exists($this->pageProcessor, 'fetchData')) {
+            $pagePromises = $this->pageProcessor->fetchData($metadata, []);
+        }
+
+        $basePromises = [];
+        if (isset($this->baseProcessor) && method_exists($this->baseProcessor, 'fetchData')) {
+            $basePromises = $this->baseProcessor->fetchData($metadata, []);
+        }
+
+        // Merge the raw arrays and then wrap them with Utils::all
+        $allPagePromises = array_merge($pagePromises, $basePromises);
+        $promises['page'] = Utils::all($allPagePromises);
 
         foreach ($modules as $module) {
             $type = $module['type'] ?? null;
@@ -232,7 +257,7 @@ class DataProcessor
         }
     }
 
-    private function loadPageProcessor(string $type): void
+    private function loadPageProcessor(string $type, bool $base=false): void
     {
         $processorFile = BASE_PATH . '/application/pages/' . $type . '.php';
         if (file_exists($processorFile)) {
@@ -241,7 +266,11 @@ class DataProcessor
             if (class_exists($className)) {
                 $processor = new $className($this->universalModule);
                 if ($processor instanceof PageProcessorInterface) {
-                    $this->pageProcessor = $processor;
+                    if ($base) {
+                        $this->baseProcessor = $processor;
+                    } else {
+                        $this->pageProcessor = $processor;
+                     }
                 }
             }
         }
