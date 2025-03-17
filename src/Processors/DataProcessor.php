@@ -62,7 +62,7 @@ class DataProcessor
         // Step 6: Process the page using the page processor (if available)
         if (isset($this->pageProcessor)) {
             $pageData['metadata'] = $this->pageProcessor->process(
-                $pageData['metadata'],
+                $pageData,
                 $pageData['metadata']
             );
         }
