@@ -57,27 +57,27 @@ class BaseModule
         return $this->fetch($url);
     }
 
-    public function getCurrentUrl(): string
+    public function getCurrentUrl($query=false): string
     {
         $uri = $this->request->getUri();
         $scheme = $uri->getScheme();
         $host = $uri->getHost();
         $port = $uri->getPort();
         $path = $uri->getPath();
-        $query = $uri->getQuery();
+        
+        if ($query) {
+            $query = $uri->getQuery();
+        }
 
         $url = $scheme . '://' . $host;
         if ($port) {
             $url .= ':' . $port;
         }
+
         $url .= $path;
+
         if ($query) {
             $url .= '?' . $query;
-        }
-
-        $language = $this->getLanguage();
-        if ($language) {
-            $url .= '/' . $language;
         }
 
         return $url;
@@ -112,4 +112,10 @@ class BaseModule
     {
         return $this->context->getGlobalContext();
     }
+
+    public function setOgTags(array $tags): void
+    {
+    $this->context->setOgTags($tags);
+    }
+    
 }

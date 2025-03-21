@@ -141,8 +141,10 @@ class PageController
      */
     private function renderPage(Request $request, Response $response, array $data, ?string $template = null): Response
     {
-        // Check if 'json' parameter is set to true
+        $data['metadata'] = array_merge($data['metadata'], $this->context->getOgTags());
+
         $queryParams = $request->getQueryParams();
+        
         if (isset($queryParams['json']) && $queryParams['json'] === 'true') {
             $jsonData = [
                 'metadata' => $data['metadata'] ?? [],
