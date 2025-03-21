@@ -29,6 +29,13 @@ use Slim\Views\Twig;
 use Twig\Loader\FilesystemLoader;
 use Twig\Extension\DebugExtension;
 
+use App\Middleware\CustomErrorMiddleware;
+use Slim\CallableResolver;
+use Slim\Interfaces\CallableResolverInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Slim\Psr7\Factory\ResponseFactory;
+
+
 /**
  * This file is used to define and register dependencies for the application.
  * It uses PHP-DI (Dependency Injection) to manage and inject dependencies.
@@ -46,10 +53,23 @@ $cacheEnabled = filter_var($_ENV['TWIG_CACHE'] ?? 'false', FILTER_VALIDATE_BOOLE
 $cacheDir = $cacheEnabled ? BASE_PATH . '/cache/twig' : false;
 
 return [
+
+    CallableResolverInterface::class => \DI\create(CallableResolver::class),
+    ResponseFactoryInterface::class => \DI\create(\Slim\Psr7\Factory\ResponseFactory::class),
+
     // Register Twig Loader
     \Twig\Loader\LoaderInterface::class => function () {
         // FilesystemLoader is used to load Twig templates from the specified directory
         return new FilesystemLoader(BASE_PATH . '/application/views');
+    },
+
+    // Register CustomErrorMiddleware
+    CustomErrorMiddleware::class => function ($container) {
+        return new CustomErrorMiddleware(
+            $container->get(CallableResolverInterface::class),
+            $container->get(ResponseFactoryInterface::class),
+            $container->get(Twig::class)
+        );
     },
 
     // Register Twig
