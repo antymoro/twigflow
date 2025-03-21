@@ -69,8 +69,8 @@ class RequestContext
     public function setOgTags(array $tags = []): void
     {
         foreach ($tags as $key => $value) {
-            if ($key === 'og:title' && isset($this->ogTags['og:title'])) {
-                $this->ogTags['og:title'] = $value . ' - ' . $this->ogTags['og:title'];
+            if ($key === 'og_title' && isset($this->ogTags['og_title'])) {
+                $this->ogTags['og_title'] = $value . ' - ' . $this->ogTags['og_title'];
             } else {
                 $this->ogTags[$key] = $value;
             }
