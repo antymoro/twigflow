@@ -28,7 +28,9 @@ class LanguageMiddleware
             return $handler->handle($request);
         }
 
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
 
         $uri = $request->getUri();
         $path = $uri->getPath();
