@@ -99,7 +99,6 @@ class ApiFetcher
 
             return $response->getStatusCode() === 200;
         } catch (\Exception $e) {
-            dd($e->getResponse()->getBody()->getContents());
             error_log("Failed to post documents to Sanity CMS: " . $e->getMessage());
             return false;
         }

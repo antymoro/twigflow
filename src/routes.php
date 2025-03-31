@@ -45,18 +45,17 @@ return function (App $app) use ($container) {
     $app->get('/api/clear-jobs', [ScraperController::class, 'clearPendingJobs'])
         ->setName('scraper.clearPendingJobs');
 
-
     // Route to handle search requests
     $app->get('/api/search', SearchController::class . ':search')
         ->setName('search');
 
     // Dynamic route for API endpoints
-    $app->get('/api/{endpoint}', function ($request, $response, $args) use ($container) {
+    $app->map(['GET', 'POST'], '/api/{endpoint}', function ($request, $response, $args) use ($container) {
         $apiFetcher = $container->get(\App\Utils\ApiFetcher::class);
         $controller = new ApiController($apiFetcher);
         return $controller->handle($request, $response, $args);
     })->setName('api.handle');
-
+    
     // Route to handle dynamic pages using the PageController with slug
     $app->get('/{slug}', \App\Controllers\PageController::class . ':show')
         ->setName('page.show');

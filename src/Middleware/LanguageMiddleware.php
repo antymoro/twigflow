@@ -22,8 +22,7 @@ class LanguageMiddleware
 
     public function __invoke(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-
-        if (empty($this->supportedLanguages)) {
+        if (empty($this->supportedLanguages) || strtoupper($request->getMethod()) === 'POST') {
             // No languages defined, proceed without modification
             return $handler->handle($request);
         }
