@@ -18,8 +18,8 @@ class CacheService
             mkdir($cacheDirectory, 0777, true);
         }
 
-        $this->cache = new FilesystemAdapter('', 0, $cacheDirectory);
         $this->defaultExpireTime = (int) ($_ENV['CACHE_EXPIRE_TIME'] ?? 3600);
+        $this->cache = new FilesystemAdapter('', $this->defaultExpireTime, $cacheDirectory);
     }
 
     public function get(string $key, callable $callback, ?int $expiresAfter = null)
@@ -57,6 +57,11 @@ class CacheService
 
     public function set(string $key, $value, ?int $expiresAfter = null): bool
     {
+        // Bypass caching if we are not in production
+        if (APP_ENV !== 'production') {
+            return false;
+        }
+        
         $expiresAfter = $expiresAfter ?? $this->defaultExpireTime;
 
         $item = $this->cache->getItem($key);
