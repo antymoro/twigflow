@@ -185,6 +185,25 @@ class SanityDataProcessor
         $html = '';
         $listStack = []; // Stack to track open lists (each element is the tag to close)
         
+        // Define custom serializers with proper handling for links
+        $serializers = [
+            'marks' => [
+                'link' => function ($mark, $children) {
+                    $href = $mark['href'] ?? '#';
+                    $targetAttr = '';
+                    
+                    // Check if blank property exists and is true
+                    if (isset($mark['blank']) && $mark['blank'] === true) {
+                        $targetAttr = ' target="_blank" rel="noopener noreferrer"';
+                    }
+                    
+                    return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '"' . $targetAttr . '>' . 
+                        (is_array($children) && isset($children[0]) ? $children[0] : (is_array($children) ? implode('', $children) : $children)) . 
+                    '</a>';
+                }
+            ]
+        ];
+        
         foreach ($data as $item) {
             if (!is_array($item)) {
                 continue;
@@ -218,8 +237,8 @@ class SanityDataProcessor
                     }
                 }
                 
-                // Render the list item. Using BlockContent::toHtml($item) for inner HTML.
-                $content = BlockContent::toHtml($item);
+                // Render the list item with custom serializers
+                $content = BlockContent::toHtml($item, ['serializers' => $serializers]);
                 $html .= "<li>{$content}</li>";
             } else {
                 // This item is not part of a list. Close any open lists.
@@ -227,8 +246,8 @@ class SanityDataProcessor
                     $tag = array_pop($listStack);
                     $html .= "</{$tag}>";
                 }
-                // Render the item normally.
-                $html .= BlockContent::toHtml($item);
+                // Render the item normally with custom serializers
+                $html .= BlockContent::toHtml($item, ['serializers' => $serializers]);
             }
         }
         
