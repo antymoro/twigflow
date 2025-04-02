@@ -45,6 +45,9 @@ return function (App $app) use ($container) {
     $app->get('/api/clear-jobs', [ScraperController::class, 'clearPendingJobs'])
         ->setName('scraper.clearPendingJobs');
 
+    $app->get('/api/update-search-results', [ScraperController::class, 'updateSearchResults'])
+        ->setName('scraper.updateSearchResults');
+
     // Route to handle search requests
     $app->get('/api/search', SearchController::class . ':search')
         ->setName('search');

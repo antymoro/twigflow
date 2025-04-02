@@ -61,8 +61,6 @@ class ScraperService
     public function scrapeDocument(array $document): void
     {
 
-        // dd($document);
-
         $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $baseUrl = $scheme . '://' . $_SERVER['SERVER_NAME'];
 
@@ -154,6 +152,7 @@ class ScraperService
     private function scrapeUrl(string $url): mixed
     {
         try {
+            $url .= '?829sabdaskasjb';
             $response = $this->client->get($url, ['http_errors' => false]);
 
             if ($response->getStatusCode() !== 404) {

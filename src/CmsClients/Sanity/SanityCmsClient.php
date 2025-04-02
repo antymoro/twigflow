@@ -38,8 +38,7 @@ class SanityCmsClient implements CmsClientInterface
 
     public function getAllDocuments() : array
     {
-        $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title, _createdAt, _updatedAt}', ['disable_cache' => true]);
-        // dd($response);
+        $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title, name, label, _createdAt, _updatedAt}', ['disable_cache' => true]);
         $collections = [];
 
         foreach ($this->routes as $route) {
@@ -256,6 +255,29 @@ class SanityCmsClient implements CmsClientInterface
         return $newOrUpdatedDocuments;
     }
 
+    public function getDocumentsToDeleteFromSearch(array $documents, array $scrapedDocuments): array
+    {
+        $documentIds = [];
+        $documentsToDelete = [];
+
+        // Collect all document IDs from the normal documents
+        foreach ($documents as $document) {
+            $documentIds[$document['_id']] = true;
+        }
+
+        // Compare scraped documents against normal documents
+        foreach ($scrapedDocuments as $scrapedDocument) {
+            $scrapedDocumentId = $scrapedDocument['document_id'];
+
+            if (!isset($documentIds[$scrapedDocumentId])) {
+                // If the scraped document's document_id is not in the normal documents, mark it for deletion
+                $documentsToDelete[] = $scrapedDocument['_id'];
+            }
+        }
+
+        return $documentsToDelete;
+    }
+
     public function compareDocumentsWithPendingJobs(array $documents, array $pendingJobs): array
     {
         $scrapedDocumentsById = [];
@@ -280,23 +302,36 @@ class SanityCmsClient implements CmsClientInterface
 
     public function clearAllJobs(): bool
     {
-        $query = '*[_type == "scraped_documents"]';
-        // $query = '*[_type == "jobs"]';
-        $response = $this->apiFetcher->fetchFromApi($query);
-        $jobs = $response['result'] ?? [];
-
-        if (empty($jobs)) {
+        // Define the types to clear
+        $typesToClear = ['jobs', 'scraped_documents'];
+        $allMutations = [];
+    
+        foreach ($typesToClear as $type) {
+            // Fetch all documents of the current type
+            $query = '*[_type == "' . $type . '"]';
+            $response = $this->apiFetcher->fetchFromApi($query);
+            $documents = $response['result'] ?? [];
+    
+            if (!empty($documents)) {
+                // Create delete mutations for the documents
+                $mutations = array_map(function ($document) {
+                    return [
+                        'delete' => ['id' => $document['_id']],
+                    ];
+                }, $documents);
+    
+                // Merge mutations into the main array
+                $allMutations = array_merge($allMutations, $mutations);
+            }
+        }
+    
+        // If there are no documents to delete, return true
+        if (empty($allMutations)) {
             return true;
         }
-
-        $mutations = array_map(function ($job) {
-            return [
-                'delete' => ['id' => $job['_id']],
-            ];
-        }, $jobs);
-
-        $requestBody = ['mutations' => $mutations];
-
+    
+        // Send the delete mutations to the API
+        $requestBody = ['mutations' => $allMutations];
         return $this->apiFetcher->postToApi($requestBody);
     }
 
@@ -332,6 +367,19 @@ class SanityCmsClient implements CmsClientInterface
                 'delete' => ['id' => $jobId],
             ],
         ];
+
+        $requestBody = ['mutations' => $mutations];
+
+        return $this->apiFetcher->postToApi($requestBody);
+    }
+
+    public function deleteFromSearch($items)
+    {
+        $mutations = array_map(function ($item) {
+            return [
+                'delete' => ['id' => $item],
+            ];
+        }, $items);
 
         $requestBody = ['mutations' => $mutations];
 

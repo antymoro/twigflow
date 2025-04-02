@@ -45,10 +45,16 @@ class ScraperController
         try {
             $documents = $this->cmsClient->getAllDocuments();
             $scrapedDocuments = $this->cmsClient->getScrapedDocuments();
+
             $jobs = $this->cmsClient->fetchAllJobs();
 
             $newOrUpdatedDocuments = $this->cmsClient->compareDocumentsWithScrapedDocuments($documents, $scrapedDocuments);
             $newOrUpdatedDocuments = $this->cmsClient->compareDocumentsWithPendingJobs($newOrUpdatedDocuments, $jobs);
+
+            foreach ($newOrUpdatedDocuments as &$document) {
+                $title = $document['title'] ?? $document['name'] ?? $document['label'] ?? [];
+                $document['title'] = $title;
+            }
 
             $batchSize = 50;
             $batches = array_chunk($newOrUpdatedDocuments, $batchSize);
@@ -79,9 +85,34 @@ class ScraperController
 
     public function clearPendingJobs(Request $request, Response $response): Response
     {
+        // Check if the specific query string is present
+        $queryParams = $request->getQueryParams();
+        if (!isset($queryParams['829sabdaskasjb'])) {
+            $response->getBody()->write('Unauthorized request.');
+            return $response->withStatus(403); // Forbidden
+        }
+    
+        // Proceed with clearing pending jobs
         $jobs = $this->cmsClient->clearAllJobs();
-
+    
         $response->getBody()->write('Job processing completed successfully.');
+        return $response->withStatus(200);
+    }
+
+    public function updateSearchResults(Request $request, Response $response): Response
+    {
+        $documents = $this->cmsClient->getAllDocuments();
+        $scrapedDocuments = $this->cmsClient->getScrapedDocuments();
+
+        $deleteFromSearch = $this->cmsClient->getDocumentsToDeleteFromSearch($documents, $scrapedDocuments);
+
+        $success = $this->cmsClient->deleteFromSearch($deleteFromSearch);
+        if (!$success) {
+            $response->getBody()->write('Failed to delete documents from search.');
+            return $response->withStatus(500);
+        }
+
+        $response->getBody()->write('Search results updated successfully.');
         return $response->withStatus(200);
     }
 
