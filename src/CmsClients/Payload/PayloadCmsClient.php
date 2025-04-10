@@ -15,10 +15,10 @@ class PayloadCmsClient implements CmsClientInterface
     private ApiFetcher $apiFetcher;
     private RequestContext $context;
 
-    public function __construct(string $apiUrl, RequestContext $context)
+    public function __construct(string $apiUrl, RequestContext $context, ApiFetcher $apiFetcher)
     {
         $this->apiUrl = $apiUrl;
-        $this->apiFetcher = new ApiFetcher($this->apiUrl, $this);
+        $this->apiFetcher = $apiFetcher;
         $this->context = $context;
     }
 
