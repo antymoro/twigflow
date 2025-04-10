@@ -16,10 +16,11 @@ class ApiFetcher
     private string $apiUrl;
     private CmsClientInterface $cmsClient;
 
-    public function __construct(string $baseUri, CmsClientInterface $cmsClient)
+    public function __construct(string $baseUri, CmsClientInterface $cmsClient, CacheService $cacheService)
     {
         $this->apiUrl = rtrim($baseUri, '/');
         $this->cmsClient = $cmsClient;
+        $this->cache = $cacheService;
 
         $apiKey = $_ENV['API_KEY'] ?? null;
         $headers = [];
@@ -33,7 +34,7 @@ class ApiFetcher
             'headers'  => $headers,
         ]);
 
-        $this->cache = new CacheService();
+        // $this->cache = new CacheService();
     }
 
     public function fetchFromApi(string $query, array $options = []): ?array

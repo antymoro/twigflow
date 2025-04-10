@@ -116,7 +116,8 @@ return [
     ApiFetcher::class => function ($container) {
         $cmsClient = $container->get(CmsClientInterface::class);
         $baseUri = $_ENV['API_URL'];
-        return new ApiFetcher($baseUri, $cmsClient);
+        $cacheService = $container->get(CacheService::class);  // Get the cache service
+        return new ApiFetcher($baseUri, $cmsClient, $cacheService);  // Pass it to the constructor
     },
 
     RequestContext::class => function () {
