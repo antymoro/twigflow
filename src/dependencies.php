@@ -94,30 +94,46 @@ return [
     // Register CacheService
     CacheService::class => \DI\create(CacheService::class),
 
+    ApiFetcher::class => function () {
+        $baseUri = $_ENV['API_URL'];
+        $cacheService = new CacheService();
+        
+        // default URL builder that will be replaced later
+        $defaultUrlBuilder = function($baseUrl, $query, $options) {
+            return rtrim($baseUrl, '/') . '/' . ltrim($query, '/');
+        };
+        
+        return new ApiFetcher($baseUri, $cacheService, $defaultUrlBuilder);
+    },
+
     // Register CmsClientInterface
     CmsClientInterface::class => function ($container) {
-        // Determine the CMS client to use based on environment variables
         $cmsClient = $_ENV['CMS_CLIENT'] ?? 'payload';
         $apiUrl = $_ENV['API_URL'];
-        $cacheService = $container->get(CacheService::class);
+        $apiFetcher = $container->get(ApiFetcher::class);
         $context = $container->get(RequestContext::class);
-
-        // Return the appropriate CMS client implementation
+        
+        // Create the CMS client
+        $client = null;
         switch (strtolower($cmsClient)) {
             case 'payload':
-                return new PayloadCmsClient($apiUrl, $context);
+                $client = new PayloadCmsClient($apiUrl, $context, $apiFetcher);
+                break;
             case 'sanity':
-                return new SanityCmsClient($apiUrl, $context);
+                $client = new SanityCmsClient($apiUrl, $context, $apiFetcher);
+                break;
             default:
                 throw new \Exception("Unsupported CMS client: $cmsClient");
         }
-    },
-
-    ApiFetcher::class => function ($container) {
-        $cmsClient = $container->get(CmsClientInterface::class);
-        $baseUri = $_ENV['API_URL'];
-        $cacheService = $container->get(CacheService::class);  // Get the cache service
-        return new ApiFetcher($baseUri, $cmsClient, $cacheService);  // Pass it to the constructor
+        
+        $urlBuilder = function($baseUrl, $query, $options) use ($client) {
+            return $client->urlBuilder($baseUrl, $query, $options);
+        };
+        
+        // update the URL builder in the ApiFetcher
+        $apiFetcher->setUrlBuilder($urlBuilder);
+        
+        return $client;
     },
 
     RequestContext::class => function () {

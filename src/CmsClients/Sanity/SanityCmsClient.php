@@ -9,8 +9,6 @@ use App\CmsClients\Sanity\Components\DocumentsHandler;
 use App\CmsClients\CmsClientInterface;
 use App\Context\RequestContext;
 
-use GuzzleHttp\Client;
-
 class SanityCmsClient implements CmsClientInterface
 {
     private ApiFetcher $apiFetcher;
@@ -20,9 +18,9 @@ class SanityCmsClient implements CmsClientInterface
     private array $routes;
     private RequestContext $context;
 
-    public function __construct(string $apiUrl, RequestContext $context)
+    public function __construct(string $apiUrl, RequestContext $context, ApiFetcher $apiFetcher)
     {
-        $this->apiFetcher = new ApiFetcher($apiUrl, $this);
+        $this->apiFetcher = $apiFetcher;
         $this->dataProcessor = new SanityDataProcessor($context);
         $this->routes = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
         $this->referenceHandler = new SanityReferenceHandler($this->apiFetcher, $this->routes, $context);
