@@ -54,13 +54,13 @@ class HtmlUpdater
         while (preg_match($svg_pattern, $html, $m)) {
             $svg_file = BASE_PATH . "/application/views/svg/" . $m[1] . ".svg";
             $svg_content = (file_exists($svg_file)) ? file_get_contents($svg_file) : "";
-            $svg_content = str_replace('<svg ', '<svg class="svg-' . $m[1] . '" ', $svg_content);
+            $svg_content = str_replace('<svg ', '<svg class="svg-' . $m[1] . '" role="img" ', $svg_content);
             $html = str_replace($m[0], $svg_content, $html);
         };
 
         // place sprite icons:
         $pattern = "/\[\[sprite::([a-z0-9-_]+)\]\]/";
-        $replacement = '<svg class="sprite-$1"><use xlink:href="#sprite-$1"/></svg>';
+        $replacement = '<svg class="sprite-$1" role="img"><use xlink:href="#sprite-$1"/></svg>';
         $html = preg_replace($pattern, $replacement, $html);
 
         // include json files:
