@@ -6,6 +6,7 @@ use App\CmsClients\CmsClientInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Repositories\ContentRepository;
+use App\Utils\Helpers;
 
 class SearchController
 {
@@ -23,6 +24,7 @@ class SearchController
     {
         $queryParams = $request->getQueryParams();
         $query = $queryParams['q'] ?? '';
+        $query = sanitize($query);
 
         $language = $request->getAttribute('language') ?? null;
 

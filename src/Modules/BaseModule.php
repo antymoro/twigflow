@@ -7,6 +7,7 @@ use App\Context\RequestContext;
 use App\Utils\ApiFetcher;
 use GuzzleHttp\Promise\PromiseInterface;
 use App\Repositories\ContentRepository;
+use App\Utils\Helpers;
 
 class BaseModule
 {
@@ -27,7 +28,7 @@ class BaseModule
     public function getQuery(?string $key = null): array|string
     {
         $queryParams = $this->request->getQueryParams();
-        return $key === null ? $queryParams : ($queryParams[$key] ?? '');
+        return $key === null ? $queryParams : (sanitize($queryParams[$key]) ?? '');
     }
 
     public function fetchFromApi(string $query): PromiseInterface

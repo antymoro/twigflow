@@ -19,3 +19,8 @@ function slugify(string $text): string
     // Lowercase the result
     return $text !== '' ? strtolower($text) : 'n_a';
 }
+
+function sanitize(string $input): string
+{
+    return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+}
