@@ -62,17 +62,17 @@ class LexicalRichTextParser
                     $html .= $text;
                     $previousWasLinebreak = false;
                     break;
-                    case 'list':
-                        $tag = $node['listType'] === 'number' ? 'ol' : 'ul';
-                        $content = $this->renderNodes($node['children'] ?? []);
-                        $html .= '<' . $tag . '>' . $content . '</' . $tag . '>';
-                        $previousWasLinebreak = false;
-                        break;
-                    case 'listitem':
-                        $content = $this->renderNodes($node['children'] ?? []);
-                        $html .= '<li>' . $content . '</li>';
-                        $previousWasLinebreak = false;
-                        break;
+                case 'list':
+                    $tag = $node['listType'] === 'number' ? 'ol' : 'ul';
+                    $content = $this->renderNodes($node['children'] ?? []);
+                    $html .= '<' . $tag . '>' . $content . '</' . $tag . '>';
+                    $previousWasLinebreak = false;
+                    break;
+                case 'listitem':
+                    $content = $this->renderNodes($node['children'] ?? []);
+                    $html .= '<li>' . $content . '</li>';
+                    $previousWasLinebreak = false;
+                    break;
                 case 'quote':
                     $content = $this->renderNodes($node['children'] ?? []);
                     $html .= '<blockquote><p>' . $content . '</p></blockquote>';
@@ -85,9 +85,18 @@ class LexicalRichTextParser
                     }
                     break;
                 case 'link':
-                    $url = $node['fields']['url'] ?? '#';
-                    $newTab = (str_starts_with($url, 'http')) ? ' target="_blank"' : 
-                        ((!empty($node['fields']['newTab']) && $node['fields']['newTab']) ? ' target="_blank"' : '');
+                    $fields = $node['fields'] ?? [];
+                    $url = '#'; // Default URL
+
+                    if (isset($fields['linkType']) && $fields['linkType'] === 'internal') {
+                        if (isset($fields['doc']['value']['slug'])) {
+                            $url = '/' . ltrim($fields['doc']['value']['slug'], '/');
+                        }
+                    } elseif (isset($fields['url'])) {
+                        $url = $fields['url'];
+                    }
+
+                    $newTab = (str_starts_with($url, 'http')) ? ' target="_blank"' : ((!empty($fields['newTab']) && $fields['newTab']) ? ' target="_blank"' : '');
                     $content = $this->renderNodes($node['children'] ?? []);
                     $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '"' . $newTab . '>' . $content . '</a>';
                     $previousWasLinebreak = false;
