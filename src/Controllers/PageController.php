@@ -144,7 +144,7 @@ class PageController
         $data['metadata'] = array_merge($data['metadata'], $this->context->getOgTags());
 
         $queryParams = $request->getQueryParams();
-        
+
         if (isset($queryParams['json']) && $queryParams['json'] === 'true') {
             $jsonData = [
                 'metadata' => $data['metadata'] ?? [],
@@ -198,7 +198,12 @@ class PageController
 
         // Write the updated HTML to the response
         $response->getBody()->write($updatedHtml);
-        return $response;
+
+        // Set cache header for HTML responses
+        $cacheMaxAge = $_ENV['CACHE_MAX_AGE'] ?? 600;
+        return $response
+            ->withHeader('Cache-Control', 'public, max-age=' . $cacheMaxAge)
+            ->withHeader('Content-Type', 'text/html; charset=UTF-8');
     }
 
     /**
