@@ -141,7 +141,6 @@ class PageController
      */
     private function renderPage(Request $request, Response $response, array $data, ?string $template = null): Response
     {
-        $data['metadata'] = array_merge($data['metadata'], $this->context->getOgTags());
 
         $queryParams = $request->getQueryParams();
 

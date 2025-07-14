@@ -78,12 +78,14 @@ class DataProcessor
         // Step 7: Generate paths
         $pageData['paths'] = $this->generatePaths($request);
 
-        // Ensure globals are set
+        // Step 8: Ensure globals and OG tags are set
         foreach ($globalsConfig as $key => $global) {
             $pageData['globals'][$key] = $pageData['globals'][$key] ?? [];
         }
 
         $pageData['globals'] = array_merge($pageData['globals'], $this->context->getGlobalContext());
+
+        $pageData['metadata'] = array_merge($pageData['metadata'], $this->context->getOgTags());
 
         return $pageData;
     }
@@ -257,7 +259,7 @@ class DataProcessor
         }
     }
 
-    private function loadPageProcessor(string $type, bool $base=false): void
+    private function loadPageProcessor(string $type, bool $base = false): void
     {
         $processorFile = BASE_PATH . '/application/pages/' . $type . '.php';
         if (file_exists($processorFile)) {
@@ -270,7 +272,7 @@ class DataProcessor
                         $this->baseProcessor = $processor;
                     } else {
                         $this->pageProcessor = $processor;
-                     }
+                    }
                 }
             }
         }
@@ -297,29 +299,29 @@ class DataProcessor
     private function generatePaths(Request $request): array
     {
         $paths = [];
-    
+
         // Generate the home URL
         $paths['home'] = (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage();
-    
+
         // Get the current path from the request
         $currentPath = $request->getUri()->getPath();
-    
+
         // Generate URLs for the page in other languages
         $supportedLanguages = $this->context->getSupportedLanguages();
         $currentLanguage = $this->context->getLanguage();
         $paths['languages'] = [];
-    
+
         foreach ($supportedLanguages as $language) {
             $paths['languages'][$language] = '/' . $language . $currentPath . '?lang=true';
         }
-    
+
         // Move the current language URL to the beginning of the array
         if (isset($paths['languages'][$currentLanguage])) {
             $currentLanguageUrl = $paths['languages'][$currentLanguage];
             unset($paths['languages'][$currentLanguage]);
             $paths['languages'] = [$currentLanguage => $currentLanguageUrl] + $paths['languages'];
         }
-    
+
         return $paths;
     }
 }
