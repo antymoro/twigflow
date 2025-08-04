@@ -72,7 +72,11 @@ class LanguageMiddleware
             // Redirect to the same URL with the default language prefix
             $newPath = '/' . $this->defaultLanguage . $path;
             $response = new \Slim\Psr7\Response();
-            return $response->withHeader('Location', $newPath)->withStatus(302);
+
+            // Use 301 for bots (SEO), 302 for users (UX flexibility)
+            $statusCode = $this->isBot($request) ? 301 : 302;
+
+            return $response->withHeader('Location', $newPath)->withStatus($statusCode);
         }
 
         $language = array_shift($segments);
@@ -84,5 +88,35 @@ class LanguageMiddleware
         $this->context->setLanguage($language);
 
         return $handler->handle($request);
+    }
+
+    /**
+     * Detect if the request is from a search engine bot
+     */
+    private function isBot(ServerRequestInterface $request): bool
+    {
+        $userAgent = strtolower($request->getHeaderLine('User-Agent'));
+
+        $botPatterns = [
+            'googlebot',
+            'bingbot',
+            'slurp',      // Yahoo
+            'duckduckbot',
+            'baiduspider',
+            'yandexbot',
+            'facebookexternalhit',
+            'twitterbot',
+            'linkedinbot',
+            'whatsapp',
+            'telegrambot'
+        ];
+
+        foreach ($botPatterns as $pattern) {
+            if (strpos($userAgent, $pattern) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
