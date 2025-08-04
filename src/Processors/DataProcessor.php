@@ -299,20 +299,25 @@ class DataProcessor
     private function generatePaths(Request $request): array
     {
         $paths = [];
+        $uri = $request->getUri();
+        $baseUrl = $uri->getScheme() . '://' . $uri->getAuthority();
 
         // Generate the home URL
         $paths['home'] = (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage();
 
-        // Get the current path from the request
+        // Get the current path from the request (without language prefix)
         $currentPath = $request->getUri()->getPath();
 
         // Generate URLs for the page in other languages
         $supportedLanguages = $this->context->getSupportedLanguages();
         $currentLanguage = $this->context->getLanguage();
         $paths['languages'] = [];
+        $paths['alternate_languages'] = [];
 
         foreach ($supportedLanguages as $language) {
-            $paths['languages'][$language] = '/' . $language . $currentPath . '?lang=true';
+            $langPath = '/' . $language . $currentPath;
+            $paths['languages'][$language] = $langPath . '?lang=true';
+            $paths['alternate_languages'][$language] = $baseUrl . $langPath;
         }
 
         // Move the current language URL to the beginning of the array

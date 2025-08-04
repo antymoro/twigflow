@@ -141,19 +141,20 @@ class PageController
      */
     private function renderPage(Request $request, Response $response, array $data, ?string $template = null): Response
     {
-
         $queryParams = $request->getQueryParams();
 
+        // Consolidate data for both JSON and Twig
+        $viewData = [
+            'metadata' => $data['metadata'] ?? [],
+            'modules' => $data['modules'] ?? [],
+            'globals' => $data['globals'] ?? [],
+            'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
+            'translations' => $data['translations'] ?? [],
+            'paths' => $data['paths'] ?? [],
+        ];
+
         if (isset($queryParams['json']) && $queryParams['json'] === 'true') {
-            $jsonData = [
-                'metadata' => $data['metadata'] ?? [],
-                'modules' => $data['modules'] ?? [],
-                'globals' => $data['globals'] ?? [],
-                'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
-                'translations' => $data['translations'] ?? [],
-                'paths' => $data['paths'] ?? [],
-            ];
-            $payload = json_encode($jsonData, JSON_PRETTY_PRINT);
+            $payload = json_encode($viewData, JSON_PRETTY_PRINT);
             $response->getBody()->write($payload);
             return $response->withHeader('Content-Type', 'application/json');
         }
@@ -171,18 +172,10 @@ class PageController
             }
         }
 
-        // Check if the request is an AJAX request
-        $isAjax = $request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
+        // Add AJAX flag for Twig template
+        $viewData['isAjax'] = $request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
 
-        $html = $this->view->fetch($template, [
-            'metadata' => $data['metadata'] ?? [],
-            'modules' => $data['modules'] ?? [],
-            'globals' => $data['globals'] ?? [],
-            'translations' => $data['translations'] ?? [],
-            'home_url'  => (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage(),
-            'paths' => $data['paths'] ?? [],
-            'isAjax' => $isAjax,
-        ]);
+        $html = $this->view->fetch($template, $viewData);
 
         // Check if performance measurement is enabled
         if (isset($_ENV['MEASURE_PERFORMANCE']) && $_ENV['MEASURE_PERFORMANCE'] == 'true' && defined('START_TIME')) {
