@@ -58,14 +58,23 @@ class BaseModule
         return $this->fetch($url);
     }
 
-    public function getCurrentUrl($query=false): string
+    public function getCurrentUrl($query = false): string
     {
         $uri = $this->request->getUri();
         $scheme = $uri->getScheme();
+
+        if ($scheme === 'http' && (
+            $this->request->getHeaderLine('X-Forwarded-Proto') === 'https' ||
+            $this->request->getHeaderLine('X-Forwarded-Ssl') === 'on' ||
+            $this->request->getHeaderLine('X-Forwarded-Port') === '443'
+        )) {
+            $scheme = 'https';
+        }
+
         $host = $uri->getHost();
         $port = $uri->getPort();
         $path = $uri->getPath();
-        
+
         if ($query) {
             $query = $uri->getQuery();
         }
@@ -88,6 +97,16 @@ class BaseModule
     {
         $uri = $this->request->getUri();
         $scheme = $uri->getScheme();
+
+        // Detect HTTPS properly, even behind proxies
+        if ($scheme === 'http' && (
+            $this->request->getHeaderLine('X-Forwarded-Proto') === 'https' ||
+            $this->request->getHeaderLine('X-Forwarded-Ssl') === 'on' ||
+            $this->request->getHeaderLine('X-Forwarded-Port') === '443'
+        )) {
+            $scheme = 'https';
+        }
+
         $host = $uri->getHost();
         $port = $uri->getPort();
 
@@ -116,7 +135,6 @@ class BaseModule
 
     public function setOgTags(array $tags): void
     {
-    $this->context->setOgTags($tags);
+        $this->context->setOgTags($tags);
     }
-    
 }

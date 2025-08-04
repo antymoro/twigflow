@@ -300,7 +300,17 @@ class DataProcessor
     {
         $paths = [];
         $uri = $request->getUri();
-        $baseUrl = $uri->getScheme() . '://' . $uri->getAuthority();
+
+        $scheme = $uri->getScheme();
+        if ($scheme === 'http' && (
+            $request->getHeaderLine('X-Forwarded-Proto') === 'https' ||
+            $request->getHeaderLine('X-Forwarded-Ssl') === 'on' ||
+            $request->getHeaderLine('X-Forwarded-Port') === '443'
+        )) {
+            $scheme = 'https';
+        }
+
+        $baseUrl = $scheme . '://' . $uri->getAuthority();
 
         // Generate the home URL
         $paths['home'] = (empty($this->context->getLanguage())) ? '/' : '/' . $this->context->getLanguage();
