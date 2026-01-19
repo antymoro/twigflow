@@ -41,7 +41,7 @@ class BaseModule
         return $this->apiFetcher->asyncFetch($url);
     }
 
-    public function getLanguage(): string
+    public function getLanguage(): string|null
     {
         return $this->context->getLanguage();
     }
