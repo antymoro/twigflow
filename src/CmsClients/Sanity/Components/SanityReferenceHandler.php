@@ -9,6 +9,7 @@ class SanityReferenceHandler
 {
     private ApiFetcher $apiFetcher;
     private string $language;
+    private array $languages;
     private array $routesConfig;
     private array $collections = [];
 
@@ -17,6 +18,7 @@ class SanityReferenceHandler
         $this->apiFetcher = $apiFetcher;
         $this->routesConfig = $routesConfig;
         $this->language = $context->getLanguage();
+        $this->languages = $context->getSupportedLanguages();
     }
 
     public function fetchReferences(array $referenceIds): array
@@ -154,6 +156,7 @@ class SanityReferenceHandler
     public function resolveReferenceUrls($data)
     {
         $language = $this->language;
+        $languages = $this->languages;
 
         if (empty($this->collections)) {
             $this->initializeCollections();
@@ -162,7 +165,7 @@ class SanityReferenceHandler
         if (is_array($data)) {
             if (isset($data['_type']) && isset($this->collections[$data['_type']]) && isset($data['slug']['current'])) {
                 $slug = $data['slug']['current'];
-                $urlPrefix = $language ? '/' . $language : '';
+                $urlPrefix = $languages ? '/' . $language : '';
                 $data['url'] = $urlPrefix . $this->collections[$data['_type']]['path'] . '/' . $slug;
             }
 
