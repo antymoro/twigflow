@@ -19,6 +19,7 @@ class SanityDataProcessor
     public function processDataRecursively($data): mixed
     {
         $language = $this->context->getLanguage();
+        $languages = $this->context->getSupportedLanguages();
 
         if (is_array($data)) {
             if (isset($data['_id']) && str_contains($data['_id'], 'drafts.')) {
@@ -26,6 +27,7 @@ class SanityDataProcessor
             }
 
             switch ($data['_type'] ?? null) {
+
                 
                 case 'localeString':
                     return $language && isset($data[$language]) ? $data[$language] : '';
@@ -34,7 +36,7 @@ class SanityDataProcessor
                     return $language && isset($data[$language]) ? $data[$language] : '';
 
                 case 'localeBlockContent':
-                    $submodules = $this->processHtmlBlockModule($data, $language);
+                    $submodules = $this->processHtmlBlockModule($data);
                     foreach ($submodules as &$submodule) {
                         if ($submodule['type'] === 'text') {
                             $submodule['content'] = $this->convertBlocksToHtml($submodule['content']);
@@ -49,7 +51,27 @@ class SanityDataProcessor
                         'submodules' => $submodules
                     ];
 
-                    $blockModule = $this->processDataRecursively($blockModule, $language);
+                    $blockModule = $this->processDataRecursively($blockModule);
+
+                    return $blockModule;
+
+                case 'blockContent':
+                    $submodules = $this->processHtmlBlockModule($data['title'] ?? [], false);
+                    foreach ($submodules as &$submodule) {
+                        if ($submodule['type'] === 'text') {
+                            $submodule['content'] = $this->convertBlocksToHtml($submodule['content']);
+                        } elseif ($submodule['type'] === 'image') {
+                            $submodule['content']['caption'] = $submodule['content']['caption'][$language] ?? ($submodule['content']['caption'] ?? '');
+                            $submodule['content']['alt'] = $submodule['content']['alt'][$language] ?? ($submodule['content']['alt'] ?? '');
+                        }
+                    }
+
+                    $blockModule = [
+                        'type' => 'text',
+                        'submodules' => $submodules
+                    ];
+
+                    $blockModule = $this->processDataRecursively($blockModule);
 
                     return $blockModule;
 
@@ -76,14 +98,14 @@ class SanityDataProcessor
         return $data;
     }
 
-    public function processHtmlBlockModule(array $module): array
+    public function processHtmlBlockModule(array $module, bool $isLocalized = true): array
     {
         $language = $this->context->getLanguage();
     
         $submodules = [];
         $currentBlocks = [];
     
-        if ($language) {
+        if ($isLocalized && $language) {
             $module = $module[$language] ?? [];
         }
     
@@ -161,9 +183,14 @@ class SanityDataProcessor
                         }
                         
                         // process the nested text content
-                        if (isset($item['text']) && isset($item['text']['_type']) && $item['text']['_type'] === 'localeBlockContent') {
-                            $nestedSubmodules = $this->processHtmlBlockModule($item['text']);
-                            $submodules = array_merge($submodules, $nestedSubmodules);
+                        if (isset($item['text']) && isset($item['text']['_type'])) {
+                            if ($item['text']['_type'] === 'localeBlockContent') {
+                                $nestedSubmodules = $this->processHtmlBlockModule($item['text']);
+                                $submodules = array_merge($submodules, $nestedSubmodules);
+                            } elseif ($item['text']['_type'] === 'blockContent') {
+                                $nestedSubmodules = $this->processHtmlBlockModule($item['text']['title'] ?? [], false);
+                                $submodules = array_merge($submodules, $nestedSubmodules);
+                            }
                         }
                         break;
                 }
