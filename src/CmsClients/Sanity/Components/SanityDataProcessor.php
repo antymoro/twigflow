@@ -76,6 +76,7 @@ class SanityDataProcessor
                     return $blockModule;
 
                 case 'localeSimpleBlockContent':
+                case 'simpleBlockContent':
                     return $this->convertBlocksToHtml($data);
 
                 case 'reference':
