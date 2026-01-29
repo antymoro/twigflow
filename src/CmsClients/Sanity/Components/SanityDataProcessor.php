@@ -194,6 +194,9 @@ class SanityDataProcessor
                             }
                         }
                         break;
+                    case 'list':
+                        $currentBlocks[] = $item;
+                        break;
                 }
             }
         }
@@ -234,6 +237,23 @@ class SanityDataProcessor
         
         foreach ($data as $item) {
             if (!is_array($item)) {
+                continue;
+            }
+
+            if (isset($item['_type']) && $item['_type'] === 'list') {
+                // Close any open lists from previous blocks
+                while (!empty($listStack)) {
+                    $tag = array_pop($listStack);
+                    $html .= "</{$tag}>";
+                }
+
+                $title = $item['title'] ?? '';
+                $html .= "<h3>" . htmlspecialchars($title) . "</h3>";
+                $html .= "<ul>";
+                foreach (($item['items'] ?? []) as $listItem) {
+                    $html .= "<li>" . htmlspecialchars($listItem) . "</li>";
+                }
+                $html .= "</ul>";
                 continue;
             }
             
