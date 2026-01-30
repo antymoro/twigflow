@@ -28,7 +28,7 @@ class SanityDataProcessor
 
             switch ($data['_type'] ?? null) {
 
-                
+
                 case 'localeString':
                     return $language && isset($data[$language]) ? $data[$language] : '';
 
@@ -102,21 +102,21 @@ class SanityDataProcessor
     public function processHtmlBlockModule(array $module, bool $isLocalized = true): array
     {
         $language = $this->context->getLanguage();
-    
+
         $submodules = [];
         $currentBlocks = [];
-    
+
         if ($isLocalized && $language) {
             $module = $module[$language] ?? [];
         }
-    
+
         foreach ($module as $item) {
             if (is_array($item)) {
                 switch ($item['_type'] ?? null) {
                     case 'block':
                         $currentBlocks[] = $item;
                         break;
-                        
+
                     case 'imageBlock':
                         if (!empty($currentBlocks)) {
                             $submodules[] = [
@@ -130,7 +130,7 @@ class SanityDataProcessor
                             'content' => $item
                         ];
                         break;
-                        
+
                     case 'youtube':
                     case 'video':
                         if (!empty($currentBlocks)) {
@@ -145,7 +145,7 @@ class SanityDataProcessor
                             'content' => $item
                         ];
                         break;
-                        
+
                     case 'quoteBlock':
                         if (!empty($currentBlocks)) {
                             $submodules[] = [
@@ -159,7 +159,7 @@ class SanityDataProcessor
                             'content' => $item
                         ];
                         break;
-                        
+
                     case 'accordion':
                         if (!empty($currentBlocks)) {
                             $submodules[] = [
@@ -173,7 +173,7 @@ class SanityDataProcessor
                             'content' => $item
                         ];
                         break;
-                        
+
                     case 'text_inner':
                         if (!empty($currentBlocks)) {
                             $submodules[] = [
@@ -182,7 +182,7 @@ class SanityDataProcessor
                             ];
                             $currentBlocks = [];
                         }
-                        
+
                         // process the nested text content
                         if (isset($item['text']) && isset($item['text']['_type'])) {
                             if ($item['text']['_type'] === 'localeBlockContent') {
@@ -195,19 +195,32 @@ class SanityDataProcessor
                         }
                         break;
                     case 'list':
-                        $currentBlocks[] = $item;
+                        if (!empty($currentBlocks)) {
+                            $submodules[] = [
+                                'type' => 'text',
+                                'content' => $currentBlocks
+                            ];
+                            $currentBlocks = [];
+                        }
+
+                        unset($item['_type']);
+                        unset($item['_key']);
+                        $submodules[] = [
+                            'type' => 'list',
+                            'content' => $item
+                        ];
                         break;
                 }
             }
         }
-    
+
         if (!empty($currentBlocks)) {
             $submodules[] = [
                 'type' => 'text',
                 'content' => $currentBlocks
             ];
         }
-    
+
         return $submodules;
     }
 
@@ -215,26 +228,26 @@ class SanityDataProcessor
     {
         $html = '';
         $listStack = []; // Stack to track open lists (each element is the tag to close)
-        
+
         // Define custom serializers with proper handling for links
         $serializers = [
             'marks' => [
                 'link' => function ($mark, $children) {
                     $href = $mark['href'] ?? '#';
                     $targetAttr = '';
-                    
+
                     // Check if blank property exists and is true
                     if (isset($mark['blank']) && $mark['blank'] === true) {
                         $targetAttr = ' target="_blank" rel="noopener noreferrer"';
                     }
-                    
-                    return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '"' . $targetAttr . '>' . 
-                        (is_array($children) && isset($children[0]) ? $children[0] : (is_array($children) ? implode('', $children) : $children)) . 
-                    '</a>';
+
+                    return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '"' . $targetAttr . '>' .
+                        (is_array($children) && isset($children[0]) ? $children[0] : (is_array($children) ? implode('', $children) : $children)) .
+                        '</a>';
                 }
             ]
         ];
-        
+
         foreach ($data as $item) {
             if (!is_array($item)) {
                 continue;
@@ -256,14 +269,14 @@ class SanityDataProcessor
                 $html .= "</ul>";
                 continue;
             }
-            
+
             // Check if this is a list item (block with a "listItem" value)
             if (isset($item['_type']) && $item['_type'] === 'block' && isset($item['listItem'])) {
                 // Determine the desired nested level (default to 1)
                 $newLevel = isset($item['level']) ? (int) $item['level'] : 1;
                 // Determine list tag based on listItem type
                 $listTag = $item['listItem'] === 'bullet' ? 'ul' : 'ol';
-    
+
                 // If new level is deeper than current, open new nested lists
                 while (count($listStack) < $newLevel) {
                     $html .= "<{$listTag}>";
@@ -284,7 +297,7 @@ class SanityDataProcessor
                         $listStack[] = $listTag;
                     }
                 }
-                
+
                 // Render the list item with custom serializers
                 $content = BlockContent::toHtml($item, ['serializers' => $serializers]);
                 $html .= "<li>{$content}</li>";
@@ -298,13 +311,13 @@ class SanityDataProcessor
                 $html .= BlockContent::toHtml($item, ['serializers' => $serializers]);
             }
         }
-        
+
         // Close any remaining open lists.
         while (!empty($listStack)) {
             $tag = array_pop($listStack);
             $html .= "</{$tag}>";
         }
-        
+
         return $html;
     }
 
