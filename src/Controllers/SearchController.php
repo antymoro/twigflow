@@ -89,16 +89,67 @@ class SearchController
 
         foreach ($sections as $section) {
             if (stripos($section, $query) !== false) {
-                $highlightedSections[] = $this->highlightQuery($section, $query);
+                $highlightedSections[] = $this->extractSnippet($section, $query);
             }
         }
 
         return $highlightedSections;
     }
 
-    private function highlightQuery(string $content, string $query): string
+    private function extractSnippet(string $text, string $query, int $radius = 100): string
     {
-        return preg_replace('/(' . preg_quote($query, '/') . ')/i', '<span>$1</span>', $content);
+        $textLen = mb_strlen($text);
+        $queryLen = mb_strlen($query);
+        $lowerText = mb_strtolower($text);
+        $lowerQuery = mb_strtolower($query);
+
+        $matches = [];
+        $offset = 0;
+
+        while (($pos = mb_strpos($lowerText, $lowerQuery, $offset)) !== false) {
+            $matches[] = $pos;
+            $offset = $pos + $queryLen;
+        }
+
+        if (empty($matches)) {
+            return '';
+        }
+
+        $ranges = [];
+        foreach ($matches as $matchPos) {
+            $start = max(0, $matchPos - $radius);
+            $end = min($textLen, $matchPos + $queryLen + $radius);
+
+            if (!empty($ranges)) {
+                $lastRange = &$ranges[count($ranges) - 1];
+                if ($start <= $lastRange['end']) {
+                    $lastRange['end'] = max($lastRange['end'], $end);
+                    continue;
+                }
+            }
+            $ranges[] = ['start' => $start, 'end' => $end];
+        }
+
+        $result = '';
+        foreach ($ranges as $i => $range) {
+            if ($i > 0) {
+                $result .= ' ... ';
+            } elseif ($range['start'] > 0) {
+                $result .= '... ';
+            }
+
+            $length = $range['end'] - $range['start'];
+            $chunk = mb_substr($text, $range['start'], $length);
+
+            $chunk = preg_replace('/(' . preg_quote($query, '/') . ')/i', '<span>$1</span>', $chunk);
+            $result .= $chunk;
+
+            if ($i === count($ranges) - 1 && $range['end'] < $textLen) {
+                $result .= ' ...';
+            }
+        }
+
+        return $result;
     }
 
     private function initializeCollections(): void
