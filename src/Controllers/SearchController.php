@@ -39,21 +39,33 @@ class SearchController
         // Clean up content and highlight query term in the results
         foreach ($results as &$result) {
 
-            // if (empty($result['content']) || empty($result['title'])) {
-            //     continue;
-            // }
-
-            $result['title'] = $result['title'][$language] ?? null;
+            // Resolve Title
+            $title = $result['title'] ?? '';
+            if (is_array($title)) {
+                $title = isset($language) && isset($title[$language]) ? $title[$language] : (reset($title) ?: '');
+            }
+            $result['title'] = $title;
 
             $fieldsToUnset = ['updated_at', '_rev', '_type', '_id', '_createdAt', '_updatedAt', 'document_id'];
             foreach ($fieldsToUnset as $field) {
                 unset($result[$field]);
             }
-            $result['content'] = $this->highlightSections($this->cleanContent($result['content'][$language]), $query);
 
-            $result['url'] =  '/' . $language . $this->collections[$result['type']]['path'] . '/' . $result['slug'];
+            // Resolve Content
+            $content = $result['content'] ?? '';
+            if (is_array($content)) {
+                $content = isset($language) && isset($content[$language]) ? $content[$language] : (reset($content) ?: '');
+            }
+            // Ensure content is string
+            if (!is_string($content)) {
+                $content = '';
+            }
 
-            $result['url'] = 
+            $result['content'] = $this->highlightSections($this->cleanContent($content), $query);
+
+            $collectionPath = $this->collections[$result['type']]['path'] ?? '';
+            $urlLanguagePrefix = $language ? '/' . $language : '';
+            $result['url'] =  $urlLanguagePrefix . $collectionPath . '/' . $result['slug'];
 
             $searchResults[] = $result;
         }

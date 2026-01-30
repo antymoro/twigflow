@@ -15,19 +15,17 @@ class DocumentsHandler
     {
         $documents = [];
 
-        // dd($this->collections);
-
-        // dd($document);
-
-        // dd($document);
-
-        // dd($this->collections);
-
-        if (isset($document['type']) && isset($this->collections[$document['type']])
+        if (
+            isset($document['type']) && isset($this->collections[$document['type']])
             && isset($document['slug']) && !str_contains($document['_id'], 'drafts')
         ) {
             $slug = $document['slug'];
             $urls = [];
+
+            // If no supported languages are defined, assume it's a single-language site (default behavior)
+            if (empty($supportedLanguages)) {
+                $supportedLanguages = [''];
+            }
 
             foreach ($supportedLanguages as $language) {
                 $urlPrefix = $language ? '/' . $language : '';

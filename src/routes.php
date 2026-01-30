@@ -35,18 +35,18 @@ return function (App $app) use ($container) {
     $app->get('/clear-cache', \App\Controllers\CacheController::class . ':clearCache')
         ->setName('cache.clear');
 
-    // Route to trigger scraping process
-    $app->get('/api/process-jobs', [ScraperController::class, 'processPendingJobs'])
-        ->setName('scraper.processPendingJobs');
-        
-    $app->get('/api/make-jobs', [ScraperController::class, 'savePendingJobs'])
-        ->setName('scraper.savePendingJobs');
+    // Scraper Routes
+    $app->get('/api/scraper/init', [ScraperController::class, 'initQueue'])
+        ->setName('scraper.initQueue');
 
-    $app->get('/api/clear-jobs', [ScraperController::class, 'clearPendingJobs'])
-        ->setName('scraper.clearPendingJobs');
+    $app->get('/api/scraper/process', [ScraperController::class, 'processQueue'])
+        ->setName('scraper.processQueue');
 
-    $app->get('/api/update-search-results', [ScraperController::class, 'updateSearchResults'])
-        ->setName('scraper.updateSearchResults');
+    $app->get('/api/scraper/prune', [ScraperController::class, 'pruneIndex'])
+        ->setName('scraper.pruneIndex');
+
+    $app->get('/api/scraper/reset', [ScraperController::class, 'resetQueue'])
+        ->setName('scraper.resetQueue');
 
     // Route to handle search requests
     $app->get('/api/search', SearchController::class . ':search')
@@ -58,7 +58,7 @@ return function (App $app) use ($container) {
         $controller = new ApiController($apiFetcher);
         return $controller->handle($request, $response, $args);
     })->setName('api.handle');
-    
+
     // Route to handle dynamic pages using the PageController with slug
     $app->get('/{slug}', \App\Controllers\PageController::class . ':show')
         ->setName('page.show');

@@ -65,12 +65,18 @@ class ScraperService
         $baseUrl = $scheme . '://' . $_SERVER['SERVER_NAME'];
 
         foreach ($document['urls'] as $language => $url) {
-            $url = $baseUrl . '/' . ltrim($document['urls'][$language], '/');
-            $document['content'][$language] = $this->scrapeUrl($url);
+            $url = $baseUrl . '/' . ltrim($url, '/');
+
+            $scrapedContent = $this->scrapeUrl($url);
+
+            if (empty($language)) {
+                $document['content'] = $scrapedContent;
+            } else {
+                $document['content'][$language] = $scrapedContent;
+            }
         }
 
         $this->cmsClient->saveDocument($document);
-
     }
 
     private function scrapeContent(string $html): string
@@ -80,35 +86,35 @@ class ScraperService
         $dom->loadHTML($html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         // $dom->loadHTML(mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'));
         libxml_clear_errors();
-        
+
         $xpath = new \DOMXPath($dom);
-    
+
         // get the first <article> element
         $articleNodes = $xpath->query('//article');
         if (!$articleNodes || $articleNodes->length === 0) {
             return '';
         }
         $article = $articleNodes->item(0);
-        
+
         // find and remove all nodes within the article whose class attribute contains "no-search"
         $nodesToRemove = $xpath->query('.//*[contains(concat(" ", normalize-space(@class), " "), " no-search ")]', $article);
         foreach ($nodesToRemove as $node) {
             $node->parentNode->removeChild($node);
         }
-        
+
         // extract the inner HTML of the article element
         $innerHTML = '';
         foreach ($article->childNodes as $child) {
             $innerHTML .= $dom->saveHTML($child);
         }
-        
+
         // optional: Clean up whitespace or perform further processing if needed
         $html = trim($innerHTML);
         $html = str_replace('<br>', ' ', $html);
         $html = str_replace('<p>', ' ', $html);
         $html = str_replace('</p>', ' ', $html);
         $html = str_replace('<div', ' ~~~ <div', $html);
-    
+
         // remove sr-only spans
         while (strpos($html, '<span class="sr-only">')) {
             $i = strpos($html, '<span class="sr-only">');
@@ -119,10 +125,10 @@ class ScraperService
                 break;
             }
         }
-    
+
         // remove all tags
         $html = strip_tags($html);
-    
+
         // remove double spaces and new lines
         for ($i = 1; $i < 10; $i++) {
             $html = str_replace(chr(10) . chr(10), chr(10), $html);
@@ -139,7 +145,7 @@ class ScraperService
         for ($i = 1; $i < 10; $i++) {
             $html = str_replace(chr(10) . chr(10), chr(10), $html);
         }
-    
+
         $html = explode(chr(10), $html);
         foreach ($html as $k => $v) {
             if (is_numeric($v) || strlen($v) < 3) unset($html[$k]);
@@ -170,5 +176,4 @@ class ScraperService
 
         return $document;
     }
-
 }

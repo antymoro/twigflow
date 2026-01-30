@@ -34,7 +34,7 @@ class SanityCmsClient implements CmsClientInterface
         return $response['result'] ?? [];
     }
 
-    public function getAllDocuments() : array
+    public function getAllDocuments(): array
     {
         $response = $this->apiFetcher->fetchFromApi('*[]{_type, slug, _id, title, name, label, _createdAt, _updatedAt}', ['disable_cache' => true]);
         $collections = [];
@@ -58,10 +58,9 @@ class SanityCmsClient implements CmsClientInterface
         }
 
         return $documentsToScrap;
-
     }
 
-    public function getScrapedDocuments() : array
+    public function getScrapedDocuments(): array
     {
         $query = '*[_type == "scraped_documents"]';
         $response = $this->apiFetcher->fetchFromApi($query);
@@ -224,17 +223,17 @@ class SanityCmsClient implements CmsClientInterface
     {
         $scrapedDocumentsById = [];
         $newOrUpdatedDocuments = [];
-    
+
         // Index scraped documents by document_id
         foreach ($scrapedDocuments as $scrapedDocument) {
             $scrapedDocumentsById[$scrapedDocument['document_id']] = $scrapedDocument;
         }
-    
+
         // Compare documents with scraped documents
         foreach ($documents as $document) {
             $documentId = $document['_id'];
             $documentUpdatedAt = strtotime($document['_updatedAt']);
-    
+
             if (!isset($scrapedDocumentsById[$documentId])) {
                 // Document is not in scraped documents, add it to jobs
                 $newOrUpdatedDocuments[] = $document;
@@ -242,14 +241,14 @@ class SanityCmsClient implements CmsClientInterface
                 // Document is in scraped documents, compare updated_at timestamp
                 $scrapedDocument = $scrapedDocumentsById[$documentId];
                 $scrapedDocumentUpdatedAt = strtotime($scrapedDocument['updated_at']);
-    
+
                 if ($documentUpdatedAt > $scrapedDocumentUpdatedAt) {
                     // Document has a newer updated_at timestamp, add it to jobs
                     $newOrUpdatedDocuments[] = $document;
                 }
             }
         }
-    
+
         return $newOrUpdatedDocuments;
     }
 
@@ -280,21 +279,21 @@ class SanityCmsClient implements CmsClientInterface
     {
         $scrapedDocumentsById = [];
         $newOrUpdatedDocuments = [];
-    
+
         // Index scraped documents by document_id
         foreach ($pendingJobs as $scrapedDocument) {
             $scrapedDocumentsById[$scrapedDocument['document_id']] = $scrapedDocument;
         }
-    
+
         // Compare documents with scraped documents
         foreach ($documents as $document) {
             $documentId = $document['_id'];
-    
+
             if (!isset($scrapedDocumentsById[$documentId])) {
                 $newOrUpdatedDocuments[] = $document;
             }
         }
-    
+
         return $newOrUpdatedDocuments;
     }
 
@@ -303,13 +302,13 @@ class SanityCmsClient implements CmsClientInterface
         // Define the types to clear
         $typesToClear = ['jobs', 'scraped_documents'];
         $allMutations = [];
-    
+
         foreach ($typesToClear as $type) {
             // Fetch all documents of the current type
             $query = '*[_type == "' . $type . '"]';
             $response = $this->apiFetcher->fetchFromApi($query);
             $documents = $response['result'] ?? [];
-    
+
             if (!empty($documents)) {
                 // Create delete mutations for the documents
                 $mutations = array_map(function ($document) {
@@ -317,17 +316,17 @@ class SanityCmsClient implements CmsClientInterface
                         'delete' => ['id' => $document['_id']],
                     ];
                 }, $documents);
-    
+
                 // Merge mutations into the main array
                 $allMutations = array_merge($allMutations, $mutations);
             }
         }
-    
+
         // If there are no documents to delete, return true
         if (empty($allMutations)) {
             return true;
         }
-    
+
         // Send the delete mutations to the API
         $requestBody = ['mutations' => $allMutations];
         return $this->apiFetcher->postToApi($requestBody);
@@ -384,9 +383,14 @@ class SanityCmsClient implements CmsClientInterface
         return $this->apiFetcher->postToApi($requestBody);
     }
 
-    public function searchContent(string $query, string $language): array
+    public function searchContent(string $query, ?string $language = null): array
     {
-        $sanityQuery = '*[_type == "scraped_documents" && content.' . $language . ' match "' . $query . '"]';
+        if ($language) {
+            $sanityQuery = '*[_type == "scraped_documents" && content.' . $language . ' match "' . $query . '"]';
+        } else {
+            $sanityQuery = '*[_type == "scraped_documents" && content match "' . $query . '"]';
+        }
+
         $response = $this->apiFetcher->fetchFromApi($sanityQuery);
         return $response['result'] ?? [];
     }

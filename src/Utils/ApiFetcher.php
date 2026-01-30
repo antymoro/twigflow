@@ -16,13 +16,13 @@ class ApiFetcher
     private $urlBuilder;
 
     public function __construct(
-        string $baseUri, 
+        string $baseUri,
         CacheService $cacheService,
         ?callable $urlBuilder = null
     ) {
         $this->apiUrl = rtrim($baseUri, '/');
         $this->cache = $cacheService;
-        $this->urlBuilder = $urlBuilder ?? function($baseUrl, $query, $options) {
+        $this->urlBuilder = $urlBuilder ?? function ($baseUrl, $query, $options) {
             return rtrim($baseUrl, '/') . '/' . ltrim($query, '/');
         };
 
@@ -87,7 +87,7 @@ class ApiFetcher
         }
     }
 
-    public function postToApi(array $requestBody): bool
+    public function postToApi(array $requestBody, ?string &$errorMessage = null): bool
     {
 
         $url = 'https://' . $_ENV['API_ID'] . '.api.sanity.io/v2022-03-07/data/mutate/' . $_ENV['API_ENV'];
@@ -96,12 +96,13 @@ class ApiFetcher
             $response = $this->client->post($url, [
                 'json' => $requestBody,
                 'headers' => [
-                    'Authorization' => 'Bearer ' .$_ENV['API_KEY'],
+                    'Authorization' => 'Bearer ' . $_ENV['API_KEY'],
                 ],
             ]);
 
             return $response->getStatusCode() === 200;
         } catch (\Exception $e) {
+            $errorMessage = $e->getMessage();
             error_log("Failed to post documents to Sanity CMS: " . $e->getMessage());
             return false;
         }
