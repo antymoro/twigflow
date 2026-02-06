@@ -343,10 +343,12 @@ class SanityCmsClient extends AbstractCmsClient
 
     public function searchContent(string $query, ?string $language = null): array
     {
+        $wildcardQuery = $query . '*';
+
         if ($language) {
-            $sanityQuery = '*[_type == "scraped_documents" && content.' . $language . ' match "' . $query . '"]';
+            $sanityQuery = '*[_type == "scraped_documents" && content.' . $language . ' match "' . $wildcardQuery . '"]';
         } else {
-            $sanityQuery = '*[_type == "scraped_documents" && content match "' . $query . '"]';
+            $sanityQuery = '*[_type == "scraped_documents" && content match "' . $wildcardQuery . '"]';
         }
 
         $response = $this->apiFetcher->fetchFromApi($sanityQuery);

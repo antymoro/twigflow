@@ -52,6 +52,9 @@ return function (App $app) use ($container) {
     $app->get('/api/search', SearchController::class . ':search')
         ->setName('search');
 
+    $app->get('/api/live-search', SearchController::class . ':liveSearch')
+        ->setName('liveSearch');
+
     // Dynamic route for API endpoints
     $app->map(['GET', 'POST'], '/api/{endpoint}', function ($request, $response, $args) use ($container) {
         $apiFetcher = $container->get(\App\Utils\ApiFetcher::class);

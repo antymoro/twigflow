@@ -169,6 +169,78 @@ class SearchController
         return $result;
     }
 
+    public function liveSearch(Request $request, Response $response, array $args): Response
+    {
+        $queryParams = $request->getQueryParams();
+        $query = $queryParams['q'] ?? '';
+        $query = sanitize($query);
+
+        if (empty($query)) {
+            $response->getBody()->write(json_encode([]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $language = $request->getAttribute('language') ?? null;
+
+        $results = $this->cmsClient->searchContent($query, $language);
+
+        $this->initializeCollections();
+
+        $titleMatches = [];
+        $contentMatches = [];
+
+        foreach ($results as $result) {
+            $title = $result['title'] ?? '';
+            if (is_array($title)) {
+                $title = isset($language) && isset($title[$language]) ? $title[$language] : (reset($title) ?: '');
+            }
+
+            $collectionPath = $this->collections[$result['type']]['path'] ?? '';
+            $urlLanguagePrefix = $language ? '/' . $language : '';
+            $url = $urlLanguagePrefix . $collectionPath . '/' . $result['slug'];
+
+            $item = [
+                'title' => $title,
+                'url' => $url,
+                'type' => $result['type'],
+            ];
+
+            if (stripos($title, $query) !== false) {
+                $titleMatches[] = $item;
+            } else {
+                $content = $result['content'] ?? '';
+                if (is_array($content)) {
+                    $content = isset($language) && isset($content[$language]) ? $content[$language] : (reset($content) ?: '');
+                }
+                if (!is_string($content)) {
+                    $content = '';
+                }
+                $snippet = $this->extractSnippet($this->cleanContent($content), $query, 80);
+                if ($snippet !== '') {
+                    $item['snippet'] = $snippet;
+                }
+                $contentMatches[] = $item;
+            }
+        }
+
+        // Sort title matches: starts-with first, then contains
+        usort($titleMatches, function ($a, $b) use ($query) {
+            $aStarts = stripos($a['title'], $query) === 0;
+            $bStarts = stripos($b['title'], $query) === 0;
+            if ($aStarts && !$bStarts) return -1;
+            if (!$aStarts && $bStarts) return 1;
+            return 0;
+        });
+
+        $searchResults = array_merge(
+            array_slice($titleMatches, 0, 5),
+            array_slice($contentMatches, 0, 3)
+        );
+
+        $response->getBody()->write(json_encode($searchResults));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
     private function initializeCollections(): void
     {
         $this->collections = CollectionRoutes::getCollections();
