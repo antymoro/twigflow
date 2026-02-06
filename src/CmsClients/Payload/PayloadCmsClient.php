@@ -177,4 +177,9 @@ class PayloadCmsClient implements CmsClientInterface
     {
         return [];
     }
+
+    public function searchContent(string $query, ?string $language = null): array
+    {
+        return [];
+    }
 }
