@@ -32,7 +32,7 @@ return function (App $app) use ($container) {
         ->setName('page.showHomepage');
 
     // Route to clear cache without language prefix
-    $app->get('/clear-cache', \App\Controllers\CacheController::class . ':clearCache')
+    $app->get('/api/clear-cache', \App\Controllers\CacheController::class . ':clearCache')
         ->setName('cache.clear');
 
     // Scraper Routes

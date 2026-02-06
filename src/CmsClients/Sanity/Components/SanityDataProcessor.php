@@ -8,6 +8,14 @@ use Sanity\BlockContent;
 class SanityDataProcessor
 {
 
+    private const BLOCK_TYPE_MAP = [
+        'imageBlock' => 'image',
+        'youtube' => 'video',
+        'video' => 'video',
+        'quoteBlock' => 'quote',
+        'accordion' => 'accordion',
+    ];
+
     private RequestContext $context;
     private array $referenceIds = [];
 
@@ -19,7 +27,6 @@ class SanityDataProcessor
     public function processDataRecursively($data): mixed
     {
         $language = $this->context->getLanguage();
-        $languages = $this->context->getSupportedLanguages();
 
         if (is_array($data)) {
             if (isset($data['_id']) && str_contains($data['_id'], 'drafts.')) {
@@ -28,7 +35,6 @@ class SanityDataProcessor
 
             switch ($data['_type'] ?? null) {
 
-
                 case 'localeString':
                     return $language && isset($data[$language]) ? $data[$language] : '';
 
@@ -36,44 +42,10 @@ class SanityDataProcessor
                     return $language && isset($data[$language]) ? $data[$language] : '';
 
                 case 'localeBlockContent':
-                    $submodules = $this->processHtmlBlockModule($data);
-                    foreach ($submodules as &$submodule) {
-                        if ($submodule['type'] === 'text') {
-                            $submodule['content'] = $this->convertBlocksToHtml($submodule['content']);
-                        } elseif ($submodule['type'] === 'image') {
-                            $submodule['content']['caption'] = $submodule['content']['caption'][$language] ?? '';
-                            $submodule['content']['alt'] = $submodule['content']['alt'][$language] ?? '';
-                        }
-                    }
-
-                    $blockModule = [
-                        'type' => 'text',
-                        'submodules' => $submodules
-                    ];
-
-                    $blockModule = $this->processDataRecursively($blockModule);
-
-                    return $blockModule;
+                    return $this->processBlockContent($data, true);
 
                 case 'blockContent':
-                    $submodules = $this->processHtmlBlockModule($data['title'] ?? [], false);
-                    foreach ($submodules as &$submodule) {
-                        if ($submodule['type'] === 'text') {
-                            $submodule['content'] = $this->convertBlocksToHtml($submodule['content']);
-                        } elseif ($submodule['type'] === 'image') {
-                            $submodule['content']['caption'] = $submodule['content']['caption'][$language] ?? ($submodule['content']['caption'] ?? '');
-                            $submodule['content']['alt'] = $submodule['content']['alt'][$language] ?? ($submodule['content']['alt'] ?? '');
-                        }
-                    }
-
-                    $blockModule = [
-                        'type' => 'text',
-                        'submodules' => $submodules
-                    ];
-
-                    $blockModule = $this->processDataRecursively($blockModule);
-
-                    return $blockModule;
+                    return $this->processBlockContent($data, false);
 
                 case 'localeSimpleBlockContent':
                 case 'simpleBlockContent':
@@ -88,7 +60,7 @@ class SanityDataProcessor
                 default:
                     $result = [];
                     foreach ($data as $key => $value) {
-                        $processedValue = $this->processDataRecursively($value, $language);
+                        $processedValue = $this->processDataRecursively($value);
                         if ($processedValue !== null) {
                             $result[$key] = $processedValue;
                         }
@@ -97,6 +69,43 @@ class SanityDataProcessor
             }
         }
         return $data;
+    }
+
+    /**
+     * Shared logic for localeBlockContent and blockContent cases.
+     * Calls processHtmlBlockModule, localizes image fields, converts text to HTML,
+     * then recurses to resolve any remaining nested types.
+     */
+    private function processBlockContent(array $data, bool $isLocalized): array
+    {
+        $inputData = $isLocalized ? $data : ($data['title'] ?? []);
+        $submodules = $this->processHtmlBlockModule($inputData, $isLocalized);
+
+        foreach ($submodules as &$submodule) {
+            if ($submodule['type'] === 'text') {
+                $submodule['content'] = $this->convertBlocksToHtml($submodule['content']);
+            } elseif ($submodule['type'] === 'image') {
+                $this->localizeImageFields($submodule['content'], $isLocalized);
+            }
+        }
+
+        return $this->processDataRecursively([
+            'type' => 'text',
+            'submodules' => $submodules,
+        ]);
+    }
+
+    private function localizeImageFields(array &$content, bool $isLocalized): void
+    {
+        $language = $this->context->getLanguage();
+
+        if ($isLocalized) {
+            $content['caption'] = $content['caption'][$language] ?? '';
+            $content['alt'] = $content['alt'][$language] ?? '';
+        } else {
+            $content['caption'] = $content['caption'][$language] ?? ($content['caption'] ?? '');
+            $content['alt'] = $content['alt'][$language] ?? ($content['alt'] ?? '');
+        }
     }
 
     public function processHtmlBlockModule(array $module, bool $isLocalized = true): array
@@ -111,132 +120,123 @@ class SanityDataProcessor
         }
 
         foreach ($module as $item) {
-            if (is_array($item)) {
-                switch ($item['_type'] ?? null) {
-                    case 'block':
-                        $currentBlocks[] = $item;
-                        break;
+            if (!is_array($item)) {
+                continue;
+            }
 
-                    case 'imageBlock':
-                        if (!empty($currentBlocks)) {
-                            $submodules[] = [
-                                'type' => 'text',
-                                'content' => $currentBlocks
-                            ];
-                            $currentBlocks = [];
-                        }
-                        $submodules[] = [
-                            'type' => 'image',
-                            'content' => $item
-                        ];
-                        break;
+            $type = $item['_type'] ?? null;
 
-                    case 'youtube':
-                    case 'video':
-                        if (!empty($currentBlocks)) {
-                            $submodules[] = [
-                                'type' => 'text',
-                                'content' => $currentBlocks
-                            ];
-                            $currentBlocks = [];
-                        }
-                        $submodules[] = [
-                            'type' => 'video',
-                            'content' => $item
-                        ];
-                        break;
-
-                    case 'quoteBlock':
-                        if (!empty($currentBlocks)) {
-                            $submodules[] = [
-                                'type' => 'text',
-                                'content' => $currentBlocks
-                            ];
-                            $currentBlocks = [];
-                        }
-                        $submodules[] = [
-                            'type' => 'quote',
-                            'content' => $item
-                        ];
-                        break;
-
-                    case 'accordion':
-                        if (!empty($currentBlocks)) {
-                            $submodules[] = [
-                                'type' => 'text',
-                                'content' => $currentBlocks
-                            ];
-                            $currentBlocks = [];
-                        }
-                        $submodules[] = [
-                            'type' => 'accordion',
-                            'content' => $item
-                        ];
-                        break;
-
-                    case 'text_inner':
-                        if (!empty($currentBlocks)) {
-                            $submodules[] = [
-                                'type' => 'text',
-                                'content' => $currentBlocks
-                            ];
-                            $currentBlocks = [];
-                        }
-
-                        // process the nested text content
-                        if (isset($item['text']) && isset($item['text']['_type'])) {
-                            if ($item['text']['_type'] === 'localeBlockContent') {
-                                $nestedSubmodules = $this->processHtmlBlockModule($item['text']);
-                                $submodules = array_merge($submodules, $nestedSubmodules);
-                            } elseif ($item['text']['_type'] === 'blockContent') {
-                                $nestedSubmodules = $this->processHtmlBlockModule($item['text']['title'] ?? [], false);
-                                $submodules = array_merge($submodules, $nestedSubmodules);
-                            }
-                        }
-                        break;
-                    case 'list':
-                        if (!empty($currentBlocks)) {
-                            $submodules[] = [
-                                'type' => 'text',
-                                'content' => $currentBlocks
-                            ];
-                            $currentBlocks = [];
-                        }
-
-                        unset($item['_type']);
-                        unset($item['_key']);
-                        $submodules[] = [
-                            'type' => 'list',
-                            'content' => $item
-                        ];
-                        break;
-                }
+            if ($type === 'block') {
+                $currentBlocks[] = $item;
+            } elseif (isset(self::BLOCK_TYPE_MAP[$type])) {
+                $this->flushCurrentBlocks($currentBlocks, $submodules);
+                $submodules[] = [
+                    'type' => self::BLOCK_TYPE_MAP[$type],
+                    'content' => $item,
+                ];
+            } elseif ($type === 'text_inner') {
+                $this->flushCurrentBlocks($currentBlocks, $submodules);
+                $this->processTextInnerBlock($item, $submodules);
+            } elseif ($type === 'list') {
+                $this->flushCurrentBlocks($currentBlocks, $submodules);
+                unset($item['_type'], $item['_key']);
+                $submodules[] = [
+                    'type' => 'list',
+                    'content' => $item,
+                ];
             }
         }
 
+        $this->flushCurrentBlocks($currentBlocks, $submodules);
+
+        return $submodules;
+    }
+
+    private function flushCurrentBlocks(array &$currentBlocks, array &$submodules): void
+    {
         if (!empty($currentBlocks)) {
             $submodules[] = [
                 'type' => 'text',
-                'content' => $currentBlocks
+                'content' => $currentBlocks,
             ];
+            $currentBlocks = [];
+        }
+    }
+
+    private function processTextInnerBlock(array $item, array &$submodules): void
+    {
+        if (!isset($item['text']['_type'])) {
+            return;
         }
 
-        return $submodules;
+        if ($item['text']['_type'] === 'localeBlockContent') {
+            $nestedSubmodules = $this->processHtmlBlockModule($item['text']);
+            $submodules = array_merge($submodules, $nestedSubmodules);
+        } elseif ($item['text']['_type'] === 'blockContent') {
+            $nestedSubmodules = $this->processHtmlBlockModule($item['text']['title'] ?? [], false);
+            $submodules = array_merge($submodules, $nestedSubmodules);
+        }
     }
 
     private function convertBlocksToHtml(array $data): string
     {
         $html = '';
-        $listStack = []; // Stack to track open lists (each element is the tag to close)
+        $listStack = [];
+        $serializers = $this->getBlockContentSerializers();
 
-        // Define custom serializers with proper handling for links
-        $serializers = [
+        foreach ($data as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            if (isset($item['_type']) && $item['_type'] === 'list') {
+                $html .= $this->closeOpenLists($listStack);
+                $html .= $this->renderCustomList($item);
+                continue;
+            }
+
+            if (isset($item['_type']) && $item['_type'] === 'block' && isset($item['listItem'])) {
+                $newLevel = isset($item['level']) ? (int) $item['level'] : 1;
+                $listTag = $item['listItem'] === 'bullet' ? 'ul' : 'ol';
+
+                while (count($listStack) < $newLevel) {
+                    $html .= "<{$listTag}>";
+                    $listStack[] = $listTag;
+                }
+                while (count($listStack) > $newLevel) {
+                    $tag = array_pop($listStack);
+                    $html .= "</{$tag}>";
+                }
+                if (!empty($listStack)) {
+                    $currentTag = end($listStack);
+                    if ($currentTag !== $listTag) {
+                        $html .= "</" . array_pop($listStack) . ">";
+                        $html .= "<{$listTag}>";
+                        $listStack[] = $listTag;
+                    }
+                }
+
+                $content = BlockContent::toHtml($item, ['serializers' => $serializers]);
+                $html .= "<li>{$content}</li>";
+            } else {
+                $html .= $this->closeOpenLists($listStack);
+                $html .= BlockContent::toHtml($item, ['serializers' => $serializers]);
+            }
+        }
+
+        $html .= $this->closeOpenLists($listStack);
+
+        return $html;
+    }
+
+    private function getBlockContentSerializers(): array
+    {
+        return [
             'marks' => [
                 'link' => function ($mark, $children) {
                     $href = $mark['href'] ?? '#';
                     $targetAttr = '';
 
-                    // Check if blank property exists and is true
                     if (isset($mark['blank']) && $mark['blank'] === true) {
                         $targetAttr = ' target="_blank" rel="noopener noreferrer"';
                     }
@@ -247,99 +247,32 @@ class SanityDataProcessor
                 }
             ]
         ];
+    }
 
-        foreach ($data as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-
-            if (isset($item['_type']) && $item['_type'] === 'list') {
-                // Close any open lists from previous blocks
-                while (!empty($listStack)) {
-                    $tag = array_pop($listStack);
-                    $html .= "</{$tag}>";
-                }
-
-                $title = $item['title'] ?? '';
-                $html .= "<h3>" . htmlspecialchars($title) . "</h3>";
-                $html .= "<ul>";
-                foreach (($item['items'] ?? []) as $listItem) {
-                    $html .= "<li>" . htmlspecialchars($listItem) . "</li>";
-                }
-                $html .= "</ul>";
-                continue;
-            }
-
-            // Check if this is a list item (block with a "listItem" value)
-            if (isset($item['_type']) && $item['_type'] === 'block' && isset($item['listItem'])) {
-                // Determine the desired nested level (default to 1)
-                $newLevel = isset($item['level']) ? (int) $item['level'] : 1;
-                // Determine list tag based on listItem type
-                $listTag = $item['listItem'] === 'bullet' ? 'ul' : 'ol';
-
-                // If new level is deeper than current, open new nested lists
-                while (count($listStack) < $newLevel) {
-                    $html .= "<{$listTag}>";
-                    $listStack[] = $listTag;
-                }
-                // If new level is shallower, close extra open lists
-                while (count($listStack) > $newLevel) {
-                    $tag = array_pop($listStack);
-                    $html .= "</{$tag}>";
-                }
-                // (Optional) If at the same level but list type changes, close the current list and open a new one.
-                if (!empty($listStack)) {
-                    $currentTag = end($listStack);
-                    if ($currentTag !== $listTag) {
-                        // Close current list and open new one
-                        $html .= "</" . array_pop($listStack) . ">";
-                        $html .= "<{$listTag}>";
-                        $listStack[] = $listTag;
-                    }
-                }
-
-                // Render the list item with custom serializers
-                $content = BlockContent::toHtml($item, ['serializers' => $serializers]);
-                $html .= "<li>{$content}</li>";
-            } else {
-                // This item is not part of a list. Close any open lists.
-                while (!empty($listStack)) {
-                    $tag = array_pop($listStack);
-                    $html .= "</{$tag}>";
-                }
-                // Render the item normally with custom serializers
-                $html .= BlockContent::toHtml($item, ['serializers' => $serializers]);
-            }
-        }
-
-        // Close any remaining open lists.
+    private function closeOpenLists(array &$listStack): string
+    {
+        $html = '';
         while (!empty($listStack)) {
             $tag = array_pop($listStack);
             $html .= "</{$tag}>";
         }
+        return $html;
+    }
 
+    private function renderCustomList(array $item): string
+    {
+        $title = $item['title'] ?? '';
+        $html = "<h3>" . htmlspecialchars($title) . "</h3>";
+        $html .= "<ul>";
+        foreach (($item['items'] ?? []) as $listItem) {
+            $html .= "<li>" . htmlspecialchars($listItem) . "</li>";
+        }
+        $html .= "</ul>";
         return $html;
     }
 
     public function getReferenceIds(): array
     {
         return $this->referenceIds;
-    }
-
-    private function findSubmodulesLevel(array $data): ?array
-    {
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                if (isset($value[0]['_type']) && in_array($value[0]['_type'], ['block', 'imageBlock'])) {
-                    return $data[$key];
-                } else {
-                    $result = $this->findSubmodulesLevel($value);
-                    if ($result !== null) {
-                        return $result;
-                    }
-                }
-            }
-        }
-        return null;
     }
 }
