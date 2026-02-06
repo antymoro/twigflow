@@ -70,6 +70,23 @@ class SearchController
             $searchResults[] = $result;
         }
 
+        usort($searchResults, function ($a, $b) use ($query) {
+            $aTitleMatch = stripos($a['title'], $query) !== false;
+            $bTitleMatch = stripos($b['title'], $query) !== false;
+
+            if ($aTitleMatch && !$bTitleMatch) {
+                return -1;
+            }
+            if (!$aTitleMatch && $bTitleMatch) {
+                return 1;
+            }
+
+            $aCount = is_array($a['content']) ? count($a['content']) : 0;
+            $bCount = is_array($b['content']) ? count($b['content']) : 0;
+
+            return $bCount <=> $aCount;
+        });
+
         $response->getBody()->write(json_encode($searchResults));
         return $response->withHeader('Content-Type', 'application/json');
     }
