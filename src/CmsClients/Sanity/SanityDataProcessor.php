@@ -1,6 +1,6 @@
 <?php
 
-namespace App\CmsClients\Sanity\Components;
+namespace App\CmsClients\Sanity;
 
 use App\Context\RequestContext;
 use Sanity\BlockContent;

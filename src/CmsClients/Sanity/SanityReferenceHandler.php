@@ -1,9 +1,10 @@
 <?php
 
-namespace App\CmsClients\Sanity\Components;
+namespace App\CmsClients\Sanity;
 
 use App\Utils\ApiFetcher;
 use App\Context\RequestContext;
+use App\Routing\CollectionRoutes;
 
 class SanityReferenceHandler
 {
@@ -26,26 +27,26 @@ class SanityReferenceHandler
         if (empty($referenceIds)) {
             return [];
         }
-    
+
         $refIds = array_values(array_unique($referenceIds));
         $refIdsString = '["' . implode('","', $refIds) . '"]';
-    
+
         $referenceFieldsPath = BASE_PATH . '/application/reference_fields.json';
         $referenceFields = [];
         $nestedReferences = [];
-    
+
         if (file_exists($referenceFieldsPath)) {
             $jsonContent = json_decode(file_get_contents($referenceFieldsPath), true) ?? [];
             $referenceFields = $jsonContent['fields'] ?? [];
             $nestedReferences = $jsonContent['nested_references'] ?? [];
         }
-    
+
         // Ensure default fields are included and not duplicated
         $defaultFields = ['_id', 'slug', '_type'];
         $referenceFields = array_unique(array_merge($defaultFields, $referenceFields));
-    
+
         $fields = implode(', ', $referenceFields);
-    
+
         // Add nested references to the query
         $nestedFields = [];
         foreach ($nestedReferences as $key => $nestedReference) {
@@ -56,17 +57,17 @@ class SanityReferenceHandler
             }
         }
         $nestedFieldsString = implode(', ', $nestedFields);
-    
+
         $query = '*[_id in ' . $refIdsString . ']{ ' . $fields . ($nestedFieldsString ? ', ' . $nestedFieldsString : '') . ' }';
-    
+
         $response = $this->apiFetcher->fetchFromApi($query);
         $result = $response['result'] ?? [];
-    
+
         $mapping = [];
         foreach ($result as $doc) {
             $mapping[$doc['_id']] = $doc;
         }
-    
+
         return $mapping;
     }
 
@@ -97,18 +98,7 @@ class SanityReferenceHandler
 
     private function initializeCollections(): void
     {
-        $collections = [];
-        foreach ($this->routesConfig as $route => $config) {
-            if (isset($config['collection'])) {
-                $collectionType = $config['collection'];
-                $cleanPath = str_replace('/{slug}', '', $route);
-                $collections[$collectionType] = ['path' => $cleanPath];
-            }
-        }
-
-        // dd($collections);
-        $collections['page'] = ['path' => ''];
-        $this->collections = $collections;
+        $this->collections = CollectionRoutes::getCollections();
     }
 
     private function constructImageUrl(string $imageId): string
@@ -120,10 +110,7 @@ class SanityReferenceHandler
         $apiEnv = $_ENV['API_ENV'] ?? '';
 
         return 'https://cdn.sanity.io/images/' . $apiId . '/' . $apiEnv . '/' . $filename;
-
     }
-
-    
 
     private function processMappedReferences($data, array $mapping)
     {
@@ -176,6 +163,4 @@ class SanityReferenceHandler
 
         return $data;
     }
-
-    
 }

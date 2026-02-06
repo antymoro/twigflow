@@ -3,13 +3,13 @@
 namespace App\CmsClients\Payload;
 
 use App\Parsers\LexicalRichTextParser;
-use App\Processors\RecursiveProcessors\LexicalRichTextFieldProcessor;
+use App\Processors\LexicalRichTextFieldProcessor;
 use App\Processors\UniversalRecursiveProcessor;
 use App\Utils\ApiFetcher;
-use App\CmsClients\CmsClientInterface;
+use App\CmsClients\AbstractCmsClient;
 use App\Context\RequestContext;
 
-class PayloadCmsClient implements CmsClientInterface
+class PayloadCmsClient extends AbstractCmsClient
 {
     private string $apiUrl;
     private ApiFetcher $apiFetcher;
@@ -124,48 +124,6 @@ class PayloadCmsClient implements CmsClientInterface
         $this->updateModulesAsyncData($processedCombined);
 
         return $this->extractProcessedData($processedCombined);
-    }
-
-    private function updateGlobals(array &$asyncData, array $globalsConfig): void
-    {
-        $globals = array_keys($globalsConfig);
-
-        foreach ($asyncData['globals'] as $key => $value) {
-            if (in_array($key, $globals) && !empty($value['result'])) {
-                $asyncData['globals'][$key] = $value['result'];
-            }
-        }
-    }
-
-    private function combineData(array $modules, array $asyncData): array
-    {
-        return [
-            'modules' => $modules,
-            'modulesAsyncData' => $asyncData['modulesAsyncData'] ?? [],
-            'globals' => $asyncData['globals'] ?? [],
-            'metadata' => $asyncData['metadata'] ?? []
-        ];
-    }
-
-    private function updateModulesAsyncData(array &$processedCombined): void
-    {
-        foreach ($processedCombined['modulesAsyncData'] as $index => $module) {
-            foreach ($module as $key => $value) {
-                if (!empty($value['result'])) {
-                    $processedCombined['modulesAsyncData'][$index][$key] = $value['result'];
-                }
-            }
-        }
-    }
-
-    private function extractProcessedData(array $processedCombined): array
-    {
-        return [
-            'modules' => $processedCombined['modules'] ?? [],
-            'modulesAsyncData' => $processedCombined['modulesAsyncData'] ?? [],
-            'globals' => $processedCombined['globals'] ?? [],
-            'metadata' => $processedCombined['metadata'] ?? []
-        ];
     }
 
     public function urlBuilder(string $baseUrl, string $query, array $options): string

@@ -52,32 +52,4 @@ class ApiController
         }
     }
 
-    public function handle2(Request $request, Response $response, array $args): Response
-    {
-        $endpoint = $args['endpoint'];
-        $filePath = BASE_PATH . '/application/api/' . $endpoint . '.php';
-
-        if (file_exists($filePath)) {
-            require_once $filePath;
-
-            $className = '\\App\\Api\\' . ucfirst($endpoint);
-            if (class_exists($className)) {
-                $apiInstance = new $className($this->apiFetcher);
-                if (method_exists($apiInstance, 'process')) {
-                    $result = $apiInstance->process($request, $response, $args);
-                    $response->getBody()->write(json_encode($result));
-                    return $response->withHeader('Content-Type', 'application/json');
-                } else {
-                    $response->getBody()->write(json_encode(['error' => 'Method process not found']));
-                    return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
-                }
-            } else {
-                $response->getBody()->write(json_encode(['error' => 'Class not found']));
-                return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
-            }
-        } else {
-            $response->getBody()->write(json_encode(['error' => 'Endpoint not found']));
-            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
-        }
-    }
 }

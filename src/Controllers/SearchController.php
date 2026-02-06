@@ -6,7 +6,7 @@ use App\CmsClients\CmsClientInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Repositories\ContentRepository;
-use App\Utils\Helpers;
+use App\Routing\CollectionRoutes;
 
 class SearchController
 {
@@ -171,18 +171,6 @@ class SearchController
 
     private function initializeCollections(): void
     {
-        $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
-        $collections = [];
-
-        foreach ($routesConfig as $route => $config) {
-            if (isset($config['collection'])) {
-                $collectionType = $config['collection'];
-                $cleanPath = str_replace('/{slug}', '', $route);
-                $collections[$collectionType] = ['path' => $cleanPath];
-            }
-        }
-
-        $collections['page'] = ['path' => ''];
-        $this->collections = $collections;
+        $this->collections = CollectionRoutes::getCollections();
     }
 }

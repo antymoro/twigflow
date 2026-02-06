@@ -184,8 +184,7 @@ return [
 
     // Register ApiController
     ApiController::class => function ($container) {
-        // Create and return a new CacheController instance with dependencies
-        return new CacheController($container->get(ApiFetcher::class),);
+        return new ApiController($container->get(ApiFetcher::class));
     },
 
     // Register DatabaseService

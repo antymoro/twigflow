@@ -1,6 +1,8 @@
 <?php
 
-namespace App\CmsClients\Sanity\Components;
+namespace App\CmsClients\Sanity;
+
+use App\Routing\CollectionRoutes;
 
 class DocumentsHandler
 {
@@ -51,18 +53,6 @@ class DocumentsHandler
 
     private function initializeCollections(): void
     {
-        $routesConfig = json_decode(file_get_contents(BASE_PATH . '/application/routes.json'), true);
-        $collections = [];
-
-        foreach ($routesConfig as $route => $config) {
-            if (isset($config['collection'])) {
-                $collectionType = $config['collection'];
-                $cleanPath = str_replace('/{slug}', '', $route);
-                $collections[$collectionType] = ['path' => $cleanPath];
-            }
-        }
-
-        $collections['page'] = ['path' => ''];
-        $this->collections = $collections;
+        $this->collections = CollectionRoutes::getCollections();
     }
 }

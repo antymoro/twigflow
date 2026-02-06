@@ -31,7 +31,7 @@ $logErrorDetails = true;
 
 // Create Container using PHP-DI
 $containerBuilder = new ContainerBuilder();
-$containerBuilder->addDefinitions(TWIGFLOW_PATH . '/src/dependencies.php');
+$containerBuilder->addDefinitions(TWIGFLOW_PATH . '/src/Config/dependencies.php');
 $container = $containerBuilder->build();
 
 // Set the container to create App with
@@ -70,7 +70,7 @@ $twig = $container->get('view');
 $app->add(TwigMiddleware::create($app, $twig));
 
 // Load application routes using the route loader function
-(require TWIGFLOW_PATH . '/src/routes.php')($app);
+(require TWIGFLOW_PATH . '/src/Config/routes.php')($app);
 
 // Run the application
 $app->run();

@@ -3,13 +3,13 @@
 namespace App\CmsClients\Sanity;
 
 use App\Utils\ApiFetcher;
-use App\CmsClients\Sanity\Components\SanityDataProcessor;
-use App\CmsClients\Sanity\Components\SanityReferenceHandler;
-use App\CmsClients\Sanity\Components\DocumentsHandler;
-use App\CmsClients\CmsClientInterface;
+use App\CmsClients\Sanity\SanityDataProcessor;
+use App\CmsClients\Sanity\SanityReferenceHandler;
+use App\CmsClients\Sanity\DocumentsHandler;
+use App\CmsClients\AbstractCmsClient;
 use App\Context\RequestContext;
 
-class SanityCmsClient implements CmsClientInterface
+class SanityCmsClient extends AbstractCmsClient
 {
     private ApiFetcher $apiFetcher;
     private SanityDataProcessor $dataProcessor;
@@ -116,27 +116,6 @@ class SanityCmsClient implements CmsClientInterface
         return $this->extractProcessedData($processedCombined);
     }
 
-    private function updateGlobals(array &$asyncData, array $globalsConfig): void
-    {
-        $globals = array_keys($globalsConfig);
-
-        foreach ($asyncData['globals'] as $key => $value) {
-            if (in_array($key, $globals) && !empty($value['result'])) {
-                $asyncData['globals'][$key] = $value['result'];
-            }
-        }
-    }
-
-    private function combineData(array $modules, array $asyncData): array
-    {
-        return [
-            'modules' => $modules,
-            'modulesAsyncData' => $asyncData['modulesAsyncData'] ?? [],
-            'globals' => $asyncData['globals'] ?? [],
-            'metadata' => $asyncData['metadata'] ?? []
-        ];
-    }
-
     private function processReferences(array $processedCombined): array
     {
         $references = $this->referenceHandler->fetchReferences($this->dataProcessor->getReferenceIds());
@@ -144,27 +123,6 @@ class SanityCmsClient implements CmsClientInterface
 
         $processedCombined = $this->referenceHandler->substituteReferences($processedCombined, $processedReferences);
         return $this->referenceHandler->resolveReferenceUrls($processedCombined);
-    }
-
-    private function updateModulesAsyncData(array &$processedCombined): void
-    {
-        foreach ($processedCombined['modulesAsyncData'] as $index => $module) {
-            foreach ($module as $key => $value) {
-                if (!empty($value['result'])) {
-                    $processedCombined['modulesAsyncData'][$index][$key] = $value['result'];
-                }
-            }
-        }
-    }
-
-    private function extractProcessedData(array $processedCombined): array
-    {
-        return [
-            'modules' => $processedCombined['modules'] ?? [],
-            'modulesAsyncData' => $processedCombined['modulesAsyncData'] ?? [],
-            'globals' => $processedCombined['globals'] ?? [],
-            'metadata' => $processedCombined['metadata'] ?? []
-        ];
     }
 
     private function formatPage($page): ?array

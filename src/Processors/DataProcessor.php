@@ -5,8 +5,8 @@ namespace App\Processors;
 use GuzzleHttp\Promise\Utils;
 use App\Utils\ApiFetcher;
 use App\CmsClients\CmsClientInterface;
-use App\Modules\Manager\ModuleProcessorInterface;
-use App\Pages\Manager\PageProcessorInterface;
+use App\Modules\ModuleProcessorInterface;
+use App\Pages\PageProcessorInterface;
 use App\Context\RequestContext;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Modules\BaseModule;
@@ -282,7 +282,7 @@ class DataProcessor
     {
         $parsedTranslations = [];
         foreach ($translations as $key => $translation) {
-            if (isset($translation[$locale])) {
+            if ($locale !== null && isset($translation[$locale])) {
                 $parsedTranslations[$key] = $translation[$locale];
             } else {
                 $parsedTranslations[$key] = $translation['en'] ?? '';
@@ -331,7 +331,7 @@ class DataProcessor
         }
 
         // Move the current language URL to the beginning of the array
-        if (isset($paths['languages'][$currentLanguage])) {
+        if ($currentLanguage !== null && isset($paths['languages'][$currentLanguage])) {
             $currentLanguageUrl = $paths['languages'][$currentLanguage];
             unset($paths['languages'][$currentLanguage]);
             $paths['languages'] = [$currentLanguage => $currentLanguageUrl] + $paths['languages'];

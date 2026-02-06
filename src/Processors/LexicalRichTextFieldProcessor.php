@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Processors\RecursiveProcessors;
+namespace App\Processors;
 
 use App\Parsers\LexicalRichTextParser;
 

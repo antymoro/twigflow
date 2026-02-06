@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Manager;
+namespace App\Pages;
 
-interface ModuleProcessorInterface
+interface PageProcessorInterface
 {
     public function process(array $module, array $data): array;
 }
