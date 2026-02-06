@@ -195,6 +195,7 @@ class PageController
         $cacheMaxAge = $_ENV['CACHE_MAX_AGE'] ?? 600;
         return $response
             ->withHeader('Cache-Control', 'public, max-age=' . $cacheMaxAge)
+            ->withHeader('Vary', 'X-Requested-With')
             ->withHeader('Content-Type', 'text/html; charset=UTF-8');
     }
 
