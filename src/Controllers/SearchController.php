@@ -99,14 +99,14 @@ class SearchController
         return $content;
     }
 
-    private function highlightSections(string $content, string $query): array
+    private function highlightSections(string $content, string $query, int $radius = 100): array
     {
         $sections = explode('~~~', $content);
         $highlightedSections = [];
 
         foreach ($sections as $section) {
             if (stripos($section, $query) !== false) {
-                $highlightedSections[] = $this->extractSnippet($section, $query);
+                $highlightedSections[] = $this->extractSnippet($section, $query, $radius);
             }
         }
 
@@ -205,20 +205,22 @@ class SearchController
                 'type' => $result['type'],
             ];
 
+            $content = $result['content'] ?? '';
+            if (is_array($content)) {
+                $content = isset($language) && isset($content[$language]) ? $content[$language] : (reset($content) ?: '');
+            }
+            if (!is_string($content)) {
+                $content = '';
+            }
+            // Use smaller radius for live search snippets (e.g., 20)
+            $snippets = $this->highlightSections($this->cleanContent($content), $query, 20);
+            if (!empty($snippets)) {
+                $item['content'] = $snippets;
+            }
+
             if (stripos($title, $query) !== false) {
                 $titleMatches[] = $item;
             } else {
-                $content = $result['content'] ?? '';
-                if (is_array($content)) {
-                    $content = isset($language) && isset($content[$language]) ? $content[$language] : (reset($content) ?: '');
-                }
-                if (!is_string($content)) {
-                    $content = '';
-                }
-                $snippet = $this->extractSnippet($this->cleanContent($content), $query, 80);
-                if ($snippet !== '') {
-                    $item['snippet'] = $snippet;
-                }
                 $contentMatches[] = $item;
             }
         }
