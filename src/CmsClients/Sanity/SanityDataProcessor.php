@@ -14,6 +14,7 @@ class SanityDataProcessor
         'video' => 'video',
         'quoteBlock' => 'quote',
         'accordion' => 'accordion',
+        'linkButton' => 'linkButton',
     ];
 
     private RequestContext $context;
